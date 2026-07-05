@@ -1,9 +1,9 @@
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import type { AuditRow } from "./audit.js";
 
-export function openDb(path: string): Database.Database {
-  const db = new Database(path);
-  db.pragma("journal_mode = WAL");
+export function openDb(path: string): DatabaseSync {
+  const db = new DatabaseSync(path);
+  db.exec("PRAGMA journal_mode = WAL");
   db.exec(`CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT NOT NULL,
@@ -20,7 +20,7 @@ export function openDb(path: string): Database.Database {
 const insert = `INSERT INTO transactions (ts, network, asset, amount, payer, tx_ref, mica_compliant)
   VALUES (@ts, @network, @asset, @amount, @payer, @txRef, @mica)`;
 
-export function logTransaction(db: Database.Database, row: AuditRow): void {
+export function logTransaction(db: DatabaseSync, row: AuditRow): void {
   db.prepare(insert).run({
     ts: row.ts,
     network: row.network,

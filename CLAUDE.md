@@ -13,6 +13,14 @@ All four roadmap phases built (Node + TypeScript ESM, source in `src/`):
 - **Phase 4** — `withPayment(handler, options)` MCP tool decorator: any MCP tool gets an x402
   paywall + audit logging in one line (via `@x402/mcp`), reusing the shared audit core.
 
+**Mainnet verified 2026-07-05:** full paid loop on Base mainnet — real $0.01 USDC via the CDP
+facilitator, settlement tx confirmed on-chain, audit row logged. Two mainnet gotchas (learned
+the hard way, both verified on-chain):
+- The CDP facilitator rejects payer == payTo (`self_send_not_allowed`) — no self-payment tests.
+- An EIP-7702-delegated wallet (code `0xef0100…` at the address, e.g. Coinbase Smart Wallet
+  upgrade) cannot be an x402 payer with a raw private key: USDC v2_2 verifies via ERC-1271
+  instead of ECDSA and rejects the signature. Payer must be a plain EOA.
+
 ## Project: x402-mica
 
 EU-facing payment middleware for AI-agent and API micropayments on the x402 protocol
@@ -88,7 +96,8 @@ Sepolia (no keys, no real money); set `X402_NETWORK=eip155:8453` + `CDP_API_KEY_
 - `src/audit.ts` — **the product**: `buildAuditRow()` (shared HTTP+MCP core) → audit row +
   `mica_compliant`; `parseSettlement()` decodes HTTP settlement headers then delegates to it.
   Pure functions, unit-tested.
-- `src/db.ts` — SQLite (`better-sqlite3`) schema + `openDb()` / `logTransaction()`.
+- `src/db.ts` — SQLite (`node:sqlite`, stdlib — no native addon; needs Node >=22.13) schema +
+  `openDb()` / `logTransaction()`.
 - `src/client.ts` / `src/mcp-client.ts` — dev-only x402 payers driving the full paid loop against
   `/demo` (HTTP) and the `echo` tool (MCP).
 

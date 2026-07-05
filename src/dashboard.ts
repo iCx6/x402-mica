@@ -1,5 +1,5 @@
 import type { RequestHandler } from "express";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 
 export interface DashboardOptions {
   dbPath: string;
@@ -107,7 +107,7 @@ function renderPage(rows: Row[], page: number, pageSize: number, total: number, 
 export function auditDashboard(options: DashboardOptions): RequestHandler {
   const pageSize = options.pageSize ?? 50;
   // Read-only connection reused across requests (do NOT use openDb() — it writes/creates).
-  const db = options.apiKey ? new Database(options.dbPath, { readonly: true }) : null;
+  const db = options.apiKey ? new DatabaseSync(options.dbPath, { readOnly: true }) : null;
   const rowsStmt = db?.prepare("SELECT * FROM transactions ORDER BY id DESC LIMIT ? OFFSET ?");
   const countStmt = db?.prepare("SELECT count(*) AS c FROM transactions");
 
@@ -125,7 +125,7 @@ export function auditDashboard(options: DashboardOptions): RequestHandler {
 
     const page = Math.max(0, parseInt(String(req.query.page ?? "0"), 10) || 0);
     const total = (countStmt.get() as { c: number }).c;
-    const rows = rowsStmt.all(pageSize, page * pageSize) as Row[];
+    const rows = rowsStmt.all(pageSize, page * pageSize) as unknown as Row[];
 
     res.type("html").send(renderPage(rows, page, pageSize, total, options.apiKey));
   };
