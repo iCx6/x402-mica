@@ -1,103 +1,89 @@
 # x402-mica
 
-## 1. Indítás
+EU-facing payment middleware for AI-agent and API micropayments on the
+[x402 protocol](https://docs.cdp.coinbase.com/x402/welcome) (HTTP 402 + stablecoins),
+with built-in MiCA-compliance flagging and audit-trail generation.
 
-```bash
-npm install
-cp .env.example .env      # állítsd be a PAY_TO címet
-npm run dev
+- **Non-custodial** — funds flow payer-wallet → your wallet via x402; this library never touches them.
+- **MiCA audit trail** — every paid request logs timestamp, asset, amount, payer address,
+  a `mica_compliant` flag, and the facilitator's transaction reference to SQLite.
+- **USDC on Base** by default (MiCA-compliant via Circle's France EMI license).
+
+## Install
+
+```sh
+npm install x402-mica
 ```
 
-A szerver a `http://localhost:3000/demo` végponton figyel (alapértelmezés: Base Sepolia testnet).
-
-## 2. Funded testnet wallet (Base Sepolia)
-
-A fizetéshez testnet **USDC** kell a payer walletben Base Sepolia hálózaton:
-
-- USDC faucet (Circle): https://faucet.circle.com → válaszd a **Base Sepolia** hálózatot
-- (opcionális) Base Sepolia ETH gázra: https://portal.cdp.coinbase.com/products/faucet
-
-Az `exact` séma EIP-3009 gasless transferrel dolgozik, így a payernek jellemzően
-csak USDC-re van szüksége — a facilitator küldi be a tranzakciót.
-
-## 3. x402 kliens telepítése és a /demo hívása
-
-```bash
-npm install @x402/fetch @x402/evm viem
-```
-
-`client.mjs`:
-
-```js
-import { x402Client, wrapFetchWithPayment } from "@x402/fetch";
-import { ExactEvmScheme } from "@x402/evm/exact/client";
-import { privateKeyToAccount } from "viem/accounts";
-
-const signer = privateKeyToAccount(process.env.EVM_PRIVATE_KEY); // 0x... funded testnet wallet
-const client = new x402Client();
-client.register("eip155:*", new ExactEvmScheme(signer));
-
-const fetchWithPayment = wrapFetchWithPayment(fetch, client);
-const res = await fetchWithPayment("http://localhost:3000/demo", { method: "GET" });
-console.log(res.status, await res.json());
-```
-
-Futtatás:
-
-```bash
-EVM_PRIVATE_KEY=0x... node client.mjs
-```
-
-## 4. Mit vársz
-
-1. A kliens első hívása **402 Payment Required** választ kap (payment challenge).
-2. A `wrapFetchWithPayment` automatikusan aláírja és beküldi a fizetést, majd újrahívja a végpontot.
-3. Sikeres settlement után a válasz: `{"status":"paid","message":"hello"}`.
-4. A szerver egy **audit sort** ír a SQLite-ba (`./audit.db`, `transactions` tábla):
-   timestamp, network, asset, amount, payer cím, `mica_compliant`, facilitator tx hash.
-
-Ellenőrzés:
-
-```bash
-sqlite3 audit.db "SELECT * FROM transactions;"
-```
-
-## 5. Audit dashboard (read-only)
-
-Állíts be egy `AUDIT_API_KEY`-t a `.env`-ben, majd nyisd meg a `GET /audit` oldalt.
-A kulcs `x-api-key` headerben vagy `?key=` query paraméterben adható (utóbbi a böngészős
-lapozáshoz kell):
-
-```bash
-curl -H "x-api-key: $AUDIT_API_KEY" http://localhost:3000/audit
-# vagy böngészőben:
-# http://localhost:3000/audit?key=<AUDIT_API_KEY>
-```
-
-Szerver-oldalon renderelt HTML tábla az `audit.db` sorai fölött: ts, network, asset, amount,
-payer (rövidítve), tx_ref (kattintható Basescan link), mica_compliant (✓/✗). 50 soronként lapoz
-(`?page=N`). Kulcs nélkül 401; ha nincs `AUDIT_API_KEY` beállítva, a route 503.
-
-## 6. MCP tool paywall (x402 + compliance logging egy sorban)
-
-Bármely MCP tool egy sorban x402-paywall + audit logging mögé tehető a `withPayment`
-decoratorral (`src/mcp.ts`). Példa szerver egy `echo` toollal: `src/mcp-example.ts`.
+## Express middleware
 
 ```ts
+import express from "express";
+import { x402Middleware } from "x402-mica";
+
+const app = express();
+
+app.use(
+  x402Middleware({
+    route: "GET /demo",
+    price: "$0.01",
+    asset: "USDC",
+    network: "eip155:84532", // Base Sepolia; "eip155:8453" for Base mainnet
+    payTo: "0xYourWallet",
+    dbPath: "./audit.db",
+  }),
+);
+
+app.get("/demo", (_req, res) => res.json({ ok: true }));
+app.listen(3000);
+```
+
+Unpaid requests get an HTTP 402 challenge; paid requests pass through and are audit-logged.
+
+## MCP tool decorator
+
+Put any MCP tool behind an x402 paywall + audit logging in one line:
+
+```ts
+import { withPayment } from "x402-mica";
+
 server.tool("echo", "Echo back text. Requires $0.01 USDC.",
   { text: z.string() },
-  withPayment(async ({ text }) => ({ content: [{ type: "text", text }] }),
-    { price: config.price, asset: config.asset, network: config.network,
-      payTo: config.payTo, dbPath: config.dbPath }));
+  withPayment(async ({ text }) => ({ content: [{ type: "text", text }] }), {
+    price: "$0.01",
+    asset: "USDC",
+    network: "eip155:84532",
+    payTo: "0xYourWallet",
+    dbPath: "./audit.db",
+  }),
+);
 ```
 
-Indítás és fizetős hívás (a kliens a `CDP_WALLET_KEY`-jel fizet, mint a HTTP kliensnél):
+## Audit dashboard
 
-```bash
-npm run mcp          # a példa MCP szerver (stdio transport)
-npm run mcp-client   # fizető MCP kliens: egy paid "echo" hívás
+```ts
+import { auditDashboard } from "x402-mica";
+
+app.get("/audit", auditDashboard({ dbPath: "./audit.db", apiKey: process.env.AUDIT_API_KEY }));
 ```
 
-Mit vársz: fizetés nélküli tool hívás **x402 payment-required** választ ad (a tool nem fut le);
-sikeres fizetés után a tool lefut, és egy **audit sor** kerül az `audit.db`-be (ugyanaz a
-`buildAuditRow` + `logTransaction`, amit a HTTP út is használ) — az `onAfterSettlement` hookon át.
+Read-only, key-gated (`x-api-key` header or `?key=`), paginated HTML table over the audit log.
+
+## Networks & facilitators
+
+| Network | Facilitator | Keys needed |
+|---|---|---|
+| Base Sepolia `eip155:84532` (default) | x402.org (open) | none |
+| Base mainnet `eip155:8453` | Coinbase CDP hosted | `CDP_API_KEY_ID`, `CDP_API_KEY_SECRET` env vars |
+
+Payment verification/settlement is always delegated to the facilitator — no hand-rolled
+signature checking, and no custody of funds.
+
+## Development
+
+Demo server, paying test clients, and a full walkthrough: see
+[DEVELOPMENT.md](./DEVELOPMENT.md) (repo only, not shipped with the package).
+
+## License
+
+MIT

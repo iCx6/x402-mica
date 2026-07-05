@@ -2,7 +2,7 @@ import type { RequestHandler } from "express";
 import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
-import { makeFacilitatorClient } from "./config.js";
+import { makeFacilitatorClient } from "./facilitator.js";
 import { openDb, logTransaction } from "./db.js";
 import { parseSettlement } from "./audit.js";
 

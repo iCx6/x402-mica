@@ -1,9 +1,32 @@
 {
   "name": "x402-mica",
-  "version": "0.0.1",
-  "private": true,
-  "description": "EU-facing x402 payment middleware with MiCA-compliance audit logging (Phase 1 demo)",
+  "version": "0.1.0",
+  "description": "EU-facing x402 payment middleware with MiCA-compliance audit logging — Express middleware, MCP tool decorator, and audit dashboard",
+  "license": "MIT",
   "type": "module",
+  "main": "dist/lib.js",
+  "types": "dist/lib.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/lib.d.ts",
+      "import": "./dist/lib.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "x402",
+    "mica",
+    "micropayments",
+    "usdc",
+    "stablecoin",
+    "express",
+    "middleware",
+    "mcp",
+    "audit"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -11,27 +34,28 @@
     "client": "tsx src/client.ts",
     "mcp": "tsx src/mcp-example.ts",
     "mcp-client": "tsx src/mcp-client.ts",
-    "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts"
+    "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts",
+    "prepack": "npm run build && npm test"
   },
   "dependencies": {
     "@coinbase/x402": "2.1.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@x402/core": "2.17.0",
     "@x402/evm": "^2.17.0",
     "@x402/express": "2.17.0",
-    "@x402/fetch": "^2.17.0",
     "@x402/mcp": "^2.17.0",
     "better-sqlite3": "^11.8.1",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "viem": "^2.54.1",
-    "zod": "^3.25.76"
+    "express": "^4.21.2"
   },
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@types/better-sqlite3": "^7.6.12",
     "@types/express": "^4.17.21",
     "@types/node": "^22.10.5",
+    "@x402/fetch": "^2.17.0",
+    "dotenv": "^16.4.7",
     "tsx": "^4.19.2",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "viem": "^2.54.1",
+    "zod": "^3.25.76"
   }
 }

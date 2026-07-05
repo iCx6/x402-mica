@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 All four roadmap phases built (Node + TypeScript ESM, source in `src/`):
 - **Phase 1** — `GET /demo` gated by x402, compliance audit logging to SQLite.
-- **Phase 2** — paywall + logging extracted into a reusable `x402Middleware(options)` factory.
+- **Phase 2** — paywall + logging extracted into a reusable `x402Middleware(options)` factory,
+  packaged as the publishable `x402-mica` npm package (entry: `src/lib.ts`; name confirmed free
+  on npm, not yet published — `npm publish` is a manual step).
 - **Phase 3** — read-only, key-gated, paginated audit dashboard at `GET /audit`.
 - **Phase 4** — `withPayment(handler, options)` MCP tool decorator: any MCP tool gets an x402
   paywall + audit logging in one line (via `@x402/mcp`), reusing the shared audit core.
@@ -38,8 +40,8 @@ solved by x402; the `mica_compliant` flag and audit trail are the differentiator
 
 Ship one phase at a time; resist scope creep. Roadmap:
 1. ✅ `GET /demo` gated by x402 at $0.01 USDC on Base, logged to SQLite.
-2. ✅ Extract paywall + logging into a reusable `x402Middleware()` factory (in-repo;
-   not yet a separately published npm package — that's the later half of this step).
+2. ✅ Extract paywall + logging into a reusable `x402Middleware()` factory; packaged
+   as the `x402-mica` npm package (publish itself is a manual `npm publish`).
 3. ✅ Read-only audit dashboard over the log.
 4. ✅ Wrap as an MCP tool decorator (`withPayment`) — the long-term differentiated bet.
 
@@ -68,14 +70,18 @@ Sepolia (no keys, no real money); set `X402_NETWORK=eip155:8453` + `CDP_API_KEY_
 
 ## Layout / how it fits together
 
+- `src/lib.ts` — **public package entry** (`main`/`exports` in package.json): re-exports the
+  library API. Everything not reachable from it is demo/dev-only and blocked by the exports map.
 - `src/index.ts` — thin app wiring only (no business logic): mounts `x402Middleware` on
   `/demo`, the `/demo` response, and the `/audit` dashboard route.
 - `src/x402-middleware.ts` — `x402Middleware(options)` factory: wires x402 `paymentMiddleware`
   + facilitator, and attaches the `res.on("finish")` audit hook (fires only on paid requests).
 - `src/dashboard.ts` — `auditDashboard(options)` for `GET /audit`: read-only SQLite connection,
   key check (`x-api-key` header or `?key=`), server-rendered HTML table, LIMIT/OFFSET paging.
-- `src/config.ts` — env → typed config; `makeFacilitatorClient(network)` picks testnet x402.org
-  vs mainnet CDP.
+- `src/config.ts` — demo-only env → typed config (loads dotenv, requires `PAY_TO` at import
+  time — must never be imported from library code).
+- `src/facilitator.ts` — `makeFacilitatorClient(network)` picks testnet x402.org vs mainnet CDP;
+  library-side, no import-time env requirements.
 - `src/mcp.ts` — `withPayment(handler, options)`: wraps any MCP tool handler with an x402 paywall
   (via `@x402/mcp` `createPaymentWrapper`) + audit logging on its `onAfterSettlement` hook.
 - `src/mcp-example.ts` — example `McpServer` (stdio) with a `withPayment`-gated `echo` tool.

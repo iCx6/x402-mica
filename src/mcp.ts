@@ -1,7 +1,7 @@
 import { createPaymentWrapper, x402ResourceServer } from "@x402/mcp";
 import type { MCPToolCallback, PaymentWrappedHandler } from "@x402/mcp";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
-import { makeFacilitatorClient } from "./config.js";
+import { makeFacilitatorClient } from "./facilitator.js";
 import { openDb, logTransaction } from "./db.js";
 import { buildAuditRow } from "./audit.js";
 
