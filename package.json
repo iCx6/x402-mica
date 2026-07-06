@@ -45,7 +45,7 @@
     "client": "tsx src/client.ts",
     "mcp": "tsx src/mcp-example.ts",
     "mcp-client": "tsx src/mcp-client.ts",
-    "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts",
+    "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts && tsx src/assets.test.ts",
     "prepack": "npm run build && npm test"
   },
   "dependencies": {
