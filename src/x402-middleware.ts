@@ -5,11 +5,12 @@ import { HTTPFacilitatorClient } from "@x402/core/server";
 import { makeFacilitatorClient } from "./facilitator.js";
 import { openDb, logTransaction } from "./db.js";
 import { parseSettlement } from "./audit.js";
+import { resolvePrice } from "./assets.js";
 
 export interface X402Options {
   route: string; // e.g. "GET /demo" — paymentMiddleware route key to gate
-  price: string; // "$0.01"
-  asset: string; // "USDC" — audit label + MiCA check
+  price: string; // "$0.01" for USDC; plain euro decimal like "0.01" for EURC
+  asset?: string; // "USDC" (default) or "EURC" — selects the settlement asset; also the audit label
   network: `${string}:${string}`; // CAIP-2
   payTo: string;
   dbPath: string;
@@ -24,6 +25,9 @@ export interface X402Options {
 export function x402Middleware(options: X402Options): RequestHandler {
   const db = openDb(options.dbPath);
 
+  const asset = (options.asset ?? "USDC").toUpperCase();
+  const price = resolvePrice(asset, options.network, options.price); // throws here, not at request time
+
   const facilitatorClient = options.facilitatorClient ?? makeFacilitatorClient(options.network);
   const server = new x402ResourceServer(facilitatorClient).register(
     options.network,
@@ -34,7 +38,7 @@ export function x402Middleware(options: X402Options): RequestHandler {
     {
       [options.route]: {
         accepts: [
-          { scheme: "exact", price: options.price, network: options.network, payTo: options.payTo },
+          { scheme: "exact", price, network: options.network, payTo: options.payTo },
         ],
         description: options.description,
         mimeType: "application/json",
@@ -56,7 +60,7 @@ export function x402Middleware(options: X402Options): RequestHandler {
           paymentResponseHeader: settleHeader,
           // v2 sends PAYMENT-SIGNATURE; X-PAYMENT is the v1 alias. Payer fallback only.
           paymentHeader: req.header("PAYMENT-SIGNATURE") ?? req.header("X-PAYMENT") ?? undefined,
-          asset: options.asset,
+          asset,
           amount: options.price,
         });
         if (row) logTransaction(db, row);
