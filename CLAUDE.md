@@ -10,7 +10,7 @@ generation. **The product is the software layer** — payment-gating + complianc
 metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
 itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-## Status (2026-07-06) — all planned features shipped, v0.2.0
+## Status (2026-07-06) — v0.2.0 PUBLISHED on npm
 
 - `x402Middleware(options)` Express factory + `withPayment(handler, options)` MCP tool
   decorator, both audit-logged via the shared core.
@@ -19,14 +19,13 @@ itself is solved by x402; the `mica_compliant` flag and audit trail are the diff
 - Hosted MCP proven: `withPayment` is transport-agnostic (stdio and Streamable HTTP).
 - **Live-verified:** Base mainnet USDC loop (2026-07-05, real $0.01, tx on-chain);
   Base Sepolia EURC loop and hosted-MCP USDC loop (2026-07-06). Package `npm pack`-tested.
+- **Published 2026-07-06:** `x402-mica@0.2.0` live on npmjs.com (maintainer bluenami866),
+  `v0.2.0` tag pushed, post-publish smoke test passed (fresh registry install, all 9
+  exports load without `PAY_TO`).
 
 ## TODO
 
-1. **`npm publish`** — BLOCKED: npmjs.com signup OTP emails don't arrive for the user.
-   Once unblocked: `npm login` (interactive, user runs it) → `npm publish` (`prepack`
-   runs build+test; ships 0.2.0) → `npm view x402-mica` → `git tag v0.2.0` + push tag
-   → post-publish smoke test (`npm i x402-mica` in a temp dir, import without `PAY_TO`).
-2. **Validation before more code** — README showcase, launch post, first outside users.
+1. **Validation before more code** — README showcase, launch post, first outside users.
    New features are guesses until someone external uses the package.
 
 ## Future roadmap (unordered ideas — build only on demand)
