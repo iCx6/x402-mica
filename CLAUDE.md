@@ -39,7 +39,8 @@ solved by x402; the `mica_compliant` flag and audit trail are the differentiator
 - **Use the Coinbase CDP hosted facilitator** for payment verification. Do not
   hand-roll signature/settlement verification.
 - **USDC on Base is the default settlement asset** (MiCA-compliant via Circle's France
-  EMI license). USDT is out of scope as a default — not MiCA-authorized, delisted from
+  EMI license). EURC is also supported as an opt-in `asset: "EURC"` (same Circle EMI
+  umbrella). USDT is out of scope as a default — not MiCA-authorized, delisted from
   EU-regulated venues.
 - **Every paid request must log:** timestamp, asset, amount, payer address,
   `mica_compliant: boolean`, and the facilitator's transaction reference.
@@ -90,6 +91,8 @@ Sepolia (no keys, no real money); set `X402_NETWORK=eip155:8453` + `CDP_API_KEY_
   time — must never be imported from library code).
 - `src/facilitator.ts` — `makeFacilitatorClient(network)` picks testnet x402.org vs mainnet CDP;
   library-side, no import-time env requirements.
+- `src/assets.ts` — EURC/USDC settlement-asset registry (`resolvePrice`, on-chain-verified
+  constants); USDC stays on the money-string path, EURC becomes an explicit `AssetAmount`.
 - `src/mcp.ts` — `withPayment(handler, options)`: wraps any MCP tool handler with an x402 paywall
   (via `@x402/mcp` `createPaymentWrapper`) + audit logging on its `onAfterSettlement` hook.
 - `src/mcp-example.ts` — example `McpServer` (stdio) with a `withPayment`-gated `echo` tool.

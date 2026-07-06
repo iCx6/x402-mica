@@ -9,7 +9,7 @@ export const config = {
   network: (process.env.X402_NETWORK ?? "eip155:84532") as Network, // default: Base Sepolia
   payTo: required("PAY_TO"),
   price: process.env.PRICE ?? "$0.01",
-  asset: "USDC", // Phase 1 only accepts USDC on Base
+  asset: process.env.X402_ASSET ?? "USDC", // "USDC" or "EURC"
   port: Number(process.env.PORT ?? 3000),
   dbPath: process.env.DB_PATH ?? "./audit.db",
   auditApiKey: process.env.AUDIT_API_KEY, // optional; unset -> /audit returns 503

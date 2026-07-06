@@ -7,7 +7,8 @@ with built-in MiCA-compliance flagging and audit-trail generation.
 - **Non-custodial** — funds flow payer-wallet → your wallet via x402; this library never touches them.
 - **MiCA audit trail** — every paid request logs timestamp, asset, amount, payer address,
   a `mica_compliant` flag, and the facilitator's transaction reference to SQLite.
-- **USDC on Base** by default (MiCA-compliant via Circle's France EMI license).
+- **USDC on Base** by default; **EURC** (Circle's euro stablecoin) as an opt-in
+  `asset: "EURC"` — both MiCA-compliant via Circle's France EMI license.
 
 ## Install
 
@@ -39,6 +40,15 @@ app.listen(3000);
 ```
 
 Unpaid requests get an HTTP 402 challenge; paid requests pass through and are audit-logged.
+
+`asset` is optional and defaults to `"USDC"` (price as a dollar string, `"$0.01"`).
+To settle in euro instead, set `asset: "EURC"` and give `price` as a plain euro
+decimal (`"0.01"` — a leading `€` is fine). Same for `withPayment` below.
+
+```ts
+x402Middleware({ route: "GET /report", price: "0.05", asset: "EURC",
+  network: "eip155:8453", payTo: "0xYourWallet", dbPath: "./audit.db" })
+```
 
 ## MCP tool decorator
 
