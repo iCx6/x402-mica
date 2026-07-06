@@ -43,6 +43,43 @@ export function esc(s: string): string {
     .replace(/'/g, "&#39;");
 }
 
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const ISO_RE = /^\d{4}-\d{2}-\d{2}T[\d:.]+Z?$/;
+
+/** Validate/normalize the inclusive ?from=/?to= bounds; null = malformed (caller 400s). */
+export function dateBounds(from?: string, to?: string): { from?: string; to?: string } | null {
+  const ok = (s: string) => DATE_RE.test(s) || ISO_RE.test(s);
+  if ((from && !ok(from)) || (to && !ok(to))) return null;
+  // Our ts values are always toISOString() output, so a date-only `to` covers its
+  // whole day via this exact upper bound; a date-only `from` compares correctly as-is.
+  return { from, to: to && DATE_RE.test(to) ? `${to}T23:59:59.999Z` : to };
+}
+
+const CSV_HEADER = "ts,network,asset,amount,payer,tx_ref,mica_compliant";
+
+function csvField(v: string): string {
+  // Formula-injection guard first (payer is attacker-influenceable, target app is Excel),
+  // then RFC 4180 quoting.
+  const guarded = /^[=+\-@\t\r]/.test(v) ? `'${v}` : v;
+  return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded;
+}
+
+/** Full CSV document (header + CRLF rows) for an export download. */
+export function toCsv(rows: Row[]): string {
+  const lines = rows.map((r) =>
+    [r.ts, r.network, r.asset, r.amount, r.payer, r.tx_ref, String(r.mica_compliant)]
+      .map(csvField)
+      .join(","),
+  );
+  return [CSV_HEADER, ...lines].join("\r\n") + "\r\n";
+}
+
+/** x402-mica-audit[-<from-date>][-<to-date>].<ext> */
+export function exportFilename(ext: string, from?: string, to?: string): string {
+  const part = (s?: string) => (s ? `-${s.slice(0, 10)}` : "");
+  return `x402-mica-audit${part(from)}${part(to)}.${ext}`;
+}
+
 function renderRow(r: Row): string {
   const url = explorerTxUrl(r.network, r.tx_ref);
   const txCell = url
