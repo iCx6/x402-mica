@@ -1,116 +1,104 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Status
-
-All four roadmap phases built (Node + TypeScript ESM, source in `src/`):
-- **Phase 1** — `GET /demo` gated by x402, compliance audit logging to SQLite.
-- **Phase 2** — paywall + logging extracted into a reusable `x402Middleware(options)` factory,
-  packaged as the publishable `x402-mica` npm package (entry: `src/lib.ts`; name confirmed free
-  on npm, not yet published — `npm publish` is a manual step).
-- **Phase 3** — read-only, key-gated, paginated audit dashboard at `GET /audit`.
-- **Phase 4** — `withPayment(handler, options)` MCP tool decorator: any MCP tool gets an x402
-  paywall + audit logging in one line (via `@x402/mcp`), reusing the shared audit core.
-
-**Mainnet verified 2026-07-05:** full paid loop on Base mainnet — real $0.01 USDC via the CDP
-facilitator, settlement tx confirmed on-chain, audit row logged. Two mainnet gotchas (learned
-the hard way, both verified on-chain):
-- The CDP facilitator rejects payer == payTo (`self_send_not_allowed`) — no self-payment tests.
-- An EIP-7702-delegated wallet (code `0xef0100…` at the address, e.g. Coinbase Smart Wallet
-  upgrade) cannot be an x402 payer with a raw private key: USDC v2_2 verifies via ERC-1271
-  instead of ECDSA and rejects the signature. Payer must be a plain EOA.
+Guidance for Claude Code when working in this repository.
 
 ## Project: x402-mica
 
 EU-facing payment middleware for AI-agent and API micropayments on the x402 protocol
-(HTTP 402 + stablecoins), with built-in MiCA-compliance routing and audit-trail
-generation.
+(HTTP 402 + stablecoins), with built-in MiCA-compliance flagging and audit-trail
+generation. **The product is the software layer** — payment-gating + compliance
+metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
+itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-**The product is the software layer** — payment-gating + compliance metadata + audit
-log — sold to developers who want to monetize APIs/MCP tools. Payment-gating itself is
-solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
+## Status (2026-07-06) — all planned features shipped, v0.2.0
+
+- `x402Middleware(options)` Express factory + `withPayment(handler, options)` MCP tool
+  decorator, both audit-logged via the shared core.
+- EURC opt-in (`asset: "EURC"`) alongside the USDC default.
+- Audit dashboard `GET /audit`: HTML view + CSV/JSON export, inclusive date filter.
+- Hosted MCP proven: `withPayment` is transport-agnostic (stdio and Streamable HTTP).
+- **Live-verified:** Base mainnet USDC loop (2026-07-05, real $0.01, tx on-chain);
+  Base Sepolia EURC loop and hosted-MCP USDC loop (2026-07-06). Package `npm pack`-tested.
+
+## TODO
+
+1. **`npm publish`** — BLOCKED: npmjs.com signup OTP emails don't arrive for the user.
+   Once unblocked: `npm login` (interactive, user runs it) → `npm publish` (`prepack`
+   runs build+test; ships 0.2.0) → `npm view x402-mica` → `git tag v0.2.0` + push tag
+   → post-publish smoke test (`npm i x402-mica` in a temp dir, import without `PAY_TO`).
+2. **Validation before more code** — README showcase, launch post, first outside users.
+   New features are guesses until someone external uses the package.
+
+## Future roadmap (unordered ideas — build only on demand)
+
+- Cloud deploy of the hosted MCP demo (Fly/Render/etc.) — recipe already works on any Node host.
+- Stateful MCP sessions (SSE notification stream, session teardown) on the HTTP example.
+- Custom ERC-20 assets via Permit2; multiple accepted assets per route.
+- Export upgrades: XLSX, streaming for huge logs, non-date filters (asset/payer/network).
+- Postgres backend when a real deployment outgrows SQLite.
+- x402 Bazaar/discovery extension declarations for paid tools.
 
 ## Non-negotiable constraints
 
-- **Non-custodial.** Funds flow directly payer-wallet → seller-wallet via x402. We
-  never hold customer funds. This is a deliberate compliance decision (avoids needing
-  an EMI/PI license) — do not suggest custodial architectures "for simplicity."
-- **Use the Coinbase CDP hosted facilitator** for payment verification. Do not
-  hand-roll signature/settlement verification.
-- **USDC on Base is the default settlement asset** (MiCA-compliant via Circle's France
-  EMI license). EURC is also supported as an opt-in `asset: "EURC"` (same Circle EMI
-  umbrella). USDT is out of scope as a default — not MiCA-authorized, delisted from
-  EU-regulated venues.
-- **Every paid request must log:** timestamp, asset, amount, payer address,
-  `mica_compliant: boolean`, and the facilitator's transaction reference.
+- **Non-custodial.** Funds flow payer-wallet → seller-wallet via x402; we never hold
+  funds (deliberate: avoids EMI/PI licensing). Do not suggest custodial architectures.
+- **Coinbase CDP hosted facilitator** for verification/settlement — never hand-rolled.
+- **USDC on Base is the default asset**; EURC is the opt-in alternative (both under
+  Circle's France EMI license). USDT is out of scope — not MiCA-authorized.
+- **Every paid request logs:** timestamp, asset, amount, payer, `mica_compliant`,
+  facilitator tx reference.
 
-## Scope discipline
+## Gotchas (hard-won, verified on-chain)
 
-Ship one phase at a time; resist scope creep. Roadmap:
-1. ✅ `GET /demo` gated by x402 at $0.01 USDC on Base, logged to SQLite.
-2. ✅ Extract paywall + logging into a reusable `x402Middleware()` factory; packaged
-   as the `x402-mica` npm package (publish itself is a manual `npm publish`).
-3. ✅ Read-only audit dashboard over the log.
-4. ✅ Wrap as an MCP tool decorator (`withPayment`) — the long-term differentiated bet.
+- CDP facilitator rejects payer == payTo (`self_send_not_allowed`) — no self-payment tests.
+- An EIP-7702-delegated wallet (code `0xef0100…`, e.g. Coinbase Smart Wallet upgrade)
+  cannot be an x402 payer with a raw key — USDC verifies via ERC-1271 and rejects ECDSA
+  sigs. Payer must be a plain EOA.
+- Testnet balances are per-network: the payer's mainnet USDC is invisible on Sepolia.
+  CDP faucet claims are scriptable via the transitive `@coinbase/cdp-sdk`
+  (`CdpClient.evm.requestFaucet`, tokens `usdc`/`eurc`) with the existing CDP keys.
+- The `@x402/*` API is still churning — verify actual package exports before changing imports.
+- x402 header names (v2, no `X-` prefix): challenge `PAYMENT-REQUIRED`, request
+  `PAYMENT-SIGNATURE`, settlement `PAYMENT-RESPONSE`; `X-` forms are v1 aliases.
 
-## Tech stack
+## Tech stack & commands
 
-Node.js + TypeScript · Express · official x402 Express middleware · Coinbase CDP hosted
-facilitator · SQLite for the audit log (swap to Postgres only when the Phase 2
-dashboard needs real querying).
+Node >=22.13 + TypeScript ESM · Express · `@x402/*` + CDP hosted facilitator ·
+SQLite via stdlib `node:sqlite` (no native addon). x402 docs:
+https://docs.cdp.coinbase.com/x402/welcome
 
-x402 docs: https://docs.cdp.coinbase.com/x402/welcome
+- `npm run dev` — demo server with hot reload (`/demo` paywall + `/audit` dashboard)
+- `npm run build` / `npm start` — typecheck+compile to `dist/`, run compiled
+- `npm test` — pure-logic self-checks (audit/dashboard/assets tests, no network)
+- `npm run client` — pay `/demo` from a wallet (`CDP_WALLET_KEY`), full paid loop
+- `npm run mcp` / `npm run mcp-client` — stdio MCP example (paywalled `echo`) + payer
+- `npm run mcp-http` / `npm run mcp-http-client` — hosted (Streamable HTTP, :3001) twin pair
 
-## Commands
-
-- `npm install` — install deps
-- `npm run dev` — run with hot reload (`tsx watch src/index.ts`)
-- `npm run build` — typecheck + compile to `dist/`
-- `npm start` — run compiled `dist/index.js`
-- `npm run client` — pay `/demo` from a wallet (`CDP_WALLET_KEY`), driving a full paid loop
-- `npm run mcp` — the example MCP server (stdio) with a paywalled `echo` tool
-- `npm run mcp-client` — pay the MCP `echo` tool from a wallet, full paid MCP loop
-- `npm run mcp-http` — hosted MCP example (Streamable HTTP on :3001, same paywalled `echo`)
-- `npm run mcp-http-client` — pay the hosted `echo` over HTTP, full paid MCP loop
-- `npm test` — pure-logic self-checks (`audit.test.ts` + `dashboard.test.ts`, no network)
-
-Copy `.env.example` → `.env` and set `PAY_TO` before running. Default network is Base
-Sepolia (no keys, no real money); set `X402_NETWORK=eip155:8453` + `CDP_API_KEY_ID`/
-`CDP_API_KEY_SECRET` for Base mainnet. Set `AUDIT_API_KEY` to enable `GET /audit`.
+Copy `.env.example` → `.env`, set `PAY_TO`. Defaults: Base Sepolia, USDC. Knobs:
+`X402_ASSET=EURC` (with plain euro `PRICE`), `X402_NETWORK=eip155:8453` +
+`CDP_API_KEY_ID`/`CDP_API_KEY_SECRET` for mainnet, `AUDIT_API_KEY` to enable `/audit`.
 
 ## Layout / how it fits together
 
-- `src/lib.ts` — **public package entry** (`main`/`exports` in package.json): re-exports the
-  library API. Everything not reachable from it is demo/dev-only and blocked by the exports map.
-- `src/index.ts` — thin app wiring only (no business logic): mounts `x402Middleware` on
-  `/demo`, the `/demo` response, and the `/audit` dashboard route.
-- `src/x402-middleware.ts` — `x402Middleware(options)` factory: wires x402 `paymentMiddleware`
-  + facilitator, and attaches the `res.on("finish")` audit hook (fires only on paid requests).
-- `src/dashboard.ts` — `auditDashboard(options)` for `GET /audit`: read-only SQLite connection,
-  key check (`x-api-key` header or `?key=`), server-rendered HTML table, LIMIT/OFFSET paging;
-  CSV/JSON export (`?format=`, RFC 4180 + formula-injection guard) with inclusive `?from=`/`?to=`
-  date filter shared by the HTML view.
-- `src/config.ts` — demo-only env → typed config (loads dotenv, requires `PAY_TO` at import
-  time — must never be imported from library code).
-- `src/facilitator.ts` — `makeFacilitatorClient(network)` picks testnet x402.org vs mainnet CDP;
-  library-side, no import-time env requirements.
-- `src/assets.ts` — EURC/USDC settlement-asset registry (`resolvePrice`, on-chain-verified
+- `src/lib.ts` — **public package entry** (`exports` map): re-exports the library API.
+  Anything not reachable from it is demo/dev-only and blocked by the exports map.
+- `src/index.ts` — thin demo wiring only: `x402Middleware` on `/demo` + `/audit` route.
+- `src/x402-middleware.ts` — `x402Middleware(options)`: x402 `paymentMiddleware` +
+  facilitator wiring; `res.on("finish")` audit hook fires only on paid requests.
+- `src/mcp.ts` — `withPayment(handler, options)`: paywalls any MCP tool handler (via
+  `@x402/mcp`) + audit logging on `onAfterSettlement`. Transport-agnostic.
+- `src/audit.ts` — **the product**: `buildAuditRow()` (shared HTTP+MCP core) +
+  `isMicaCompliant`; `parseSettlement()` decodes HTTP settlement headers. Pure, unit-tested.
+- `src/assets.ts` — settlement-asset registry (`resolvePrice`, on-chain-verified EURC
   constants); USDC stays on the money-string path, EURC becomes an explicit `AssetAmount`.
-- `src/mcp.ts` — `withPayment(handler, options)`: wraps any MCP tool handler with an x402 paywall
-  (via `@x402/mcp` `createPaymentWrapper`) + audit logging on its `onAfterSettlement` hook.
-- `src/mcp-example.ts` — example `McpServer` (stdio) with a `withPayment`-gated `echo` tool.
-- `src/mcp-http-example.ts` / `src/mcp-http-client.ts` — hosted-MCP twins of the stdio pair:
-  Express + `StreamableHTTPServerTransport` (stateless) server and an HTTP paying client;
-  prove `withPayment` is transport-agnostic. Dev-only.
-- `src/audit.ts` — **the product**: `buildAuditRow()` (shared HTTP+MCP core) → audit row +
-  `mica_compliant`; `parseSettlement()` decodes HTTP settlement headers then delegates to it.
-  Pure functions, unit-tested.
-- `src/db.ts` — SQLite (`node:sqlite`, stdlib — no native addon; needs Node >=22.13) schema +
-  `openDb()` / `logTransaction()`.
-- `src/client.ts` / `src/mcp-client.ts` — dev-only x402 payers driving the full paid loop against
-  `/demo` (HTTP) and the `echo` tool (MCP).
-
-x402 header names (v2, no `X-` prefix): challenge `PAYMENT-REQUIRED`, request
-`PAYMENT-SIGNATURE`, settlement response `PAYMENT-RESPONSE`. The `X-` forms are v1 aliases.
-Verify actual package exports before changing imports — the `@x402/*` API is still churning.
+- `src/dashboard.ts` — `auditDashboard(options)`: read-only SQLite, key check (`x-api-key`
+  or `?key=`), HTML table + paging, CSV/JSON export (RFC 4180 + formula-injection guard),
+  inclusive `?from=`/`?to=` date filter shared by view and export.
+- `src/db.ts` — `node:sqlite` schema + `openDb()` / `logTransaction()`.
+- `src/facilitator.ts` — `makeFacilitatorClient(network)`: testnet x402.org vs mainnet CDP;
+  library-side, no import-time env requirements.
+- `src/config.ts` — demo-only env → typed config (dotenv; requires `PAY_TO` at import
+  time — must never be imported from library code).
+- `src/client.ts`, `src/mcp-client.ts`, `src/mcp-example.ts`, `src/mcp-http-example.ts`,
+  `src/mcp-http-client.ts` — dev-only demo servers/payers for the three paid loops
+  (HTTP `/demo`, stdio MCP, hosted MCP).
