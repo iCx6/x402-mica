@@ -97,12 +97,27 @@ function renderRow(r: Row): string {
   </tr>`;
 }
 
-function pagerLink(page: number, key: string, label: string): string {
-  return `<a href="/audit?page=${page}&key=${encodeURIComponent(key)}">${label}</a>`;
+function queryString(key: string, from: string | undefined, to: string | undefined, extra: Record<string, string | number>): string {
+  const p = new URLSearchParams({ key });
+  if (from) p.set("from", from);
+  if (to) p.set("to", to);
+  for (const [k, v] of Object.entries(extra)) p.set(k, String(v));
+  return p.toString();
 }
 
-function renderPage(rows: Row[], page: number, pageSize: number, total: number, key: string): string {
+function renderPage(
+  rows: Row[], page: number, pageSize: number, total: number,
+  key: string, from?: string, to?: string,
+): string {
+  const qs = (extra: Record<string, string | number>) => esc(queryString(key, from, to, extra));
   const pages = Math.max(1, Math.ceil(total / pageSize));
+  const filter = `<form method="get" class="filter">
+    <input type="hidden" name="key" value="${esc(key)}">
+    <label>from <input type="date" name="from" value="${esc(from ?? "")}"></label>
+    <label>to <input type="date" name="to" value="${esc(to ?? "")}"></label>
+    <button>Apply</button>
+    <span class="dl">download: <a href="/audit?${qs({ format: "csv" })}">CSV</a> · <a href="/audit?${qs({ format: "json" })}">JSON</a></span>
+  </form>`;
   const body = rows.length
     ? `<table>
         <thead><tr>
@@ -111,10 +126,10 @@ function renderPage(rows: Row[], page: number, pageSize: number, total: number, 
         </tr></thead>
         <tbody>${rows.map(renderRow).join("")}</tbody>
       </table>`
-    : `<p class="empty">No transactions yet.</p>`;
+    : `<p class="empty">No transactions${from || to ? " in this date range" : " yet"}.</p>`;
 
-  const prev = page > 0 ? pagerLink(page - 1, key, "← Prev") : "";
-  const next = page < pages - 1 ? pagerLink(page + 1, key, "Next →") : "";
+  const prev = page > 0 ? `<a href="/audit?${qs({ page: page - 1 })}">← Prev</a>` : "";
+  const next = page < pages - 1 ? `<a href="/audit?${qs({ page: page + 1 })}">Next →</a>` : "";
   const pager = total
     ? `<div class="pager">${prev}<span>Page ${page + 1} of ${pages} · ${total} rows</span>${next}</div>`
     : "";
@@ -130,11 +145,14 @@ function renderPage(rows: Row[], page: number, pageSize: number, total: number, 
   td.mica{text-align:center;font-weight:700}
   .mica.ok{color:#15803d}.mica.no{color:#b91c1c}
   .pager{margin-top:1rem;display:flex;gap:1rem;align-items:center}
+  .filter{display:flex;gap:.6rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
+  .filter .dl{margin-left:auto}
   .empty{color:#666}
   a{color:#2563eb;text-decoration:none}a:hover{text-decoration:underline}
 </style></head>
 <body>
   <h1>x402-mica — MiCA compliance audit log</h1>
+  ${filter}
   ${body}
   ${pager}
 </body></html>`;
@@ -145,11 +163,9 @@ export function auditDashboard(options: DashboardOptions): RequestHandler {
   const pageSize = options.pageSize ?? 50;
   // Read-only connection reused across requests (do NOT use openDb() — it writes/creates).
   const db = options.apiKey ? new DatabaseSync(options.dbPath, { readOnly: true }) : null;
-  const rowsStmt = db?.prepare("SELECT * FROM transactions ORDER BY id DESC LIMIT ? OFFSET ?");
-  const countStmt = db?.prepare("SELECT count(*) AS c FROM transactions");
 
   return (req, res) => {
-    if (!options.apiKey || !db || !rowsStmt || !countStmt) {
+    if (!options.apiKey || !db) {
       res.status(503).send("audit dashboard disabled: set AUDIT_API_KEY");
       return;
     }
@@ -160,10 +176,43 @@ export function auditDashboard(options: DashboardOptions): RequestHandler {
       return;
     }
 
-    const page = Math.max(0, parseInt(String(req.query.page ?? "0"), 10) || 0);
-    const total = (countStmt.get() as { c: number }).c;
-    const rows = rowsStmt.all(pageSize, page * pageSize) as unknown as Row[];
+    const q = (name: string): string | undefined =>
+      typeof req.query[name] === "string" ? (req.query[name] as string) : undefined;
+    const rawFrom = q("from") || undefined; // empty form field -> no bound
+    const rawTo = q("to") || undefined;
+    const format = q("format");
 
-    res.type("html").send(renderPage(rows, page, pageSize, total, options.apiKey));
+    const bounds = dateBounds(rawFrom, rawTo);
+    if (!bounds) {
+      res.status(400).send("invalid from/to — use YYYY-MM-DD or an ISO timestamp");
+      return;
+    }
+    if (format !== undefined && format !== "csv" && format !== "json") {
+      res.status(400).send("invalid format — use csv or json");
+      return;
+    }
+
+    const where: string[] = [];
+    const params: string[] = [];
+    if (bounds.from) { where.push("ts >= ?"); params.push(bounds.from); }
+    if (bounds.to) { where.push("ts <= ?"); params.push(bounds.to); }
+    const whereSql = where.length ? ` WHERE ${where.join(" AND ")}` : "";
+    // ponytail: statements prepared per request — SQLite-scale traffic; cache if a profile ever cares.
+    const selectAll = `SELECT * FROM transactions${whereSql} ORDER BY id DESC`;
+
+    if (format) {
+      // ponytail: full filtered set in memory — stream it if the log ever outgrows SQLite scale.
+      const rows = db.prepare(selectAll).all(...params) as unknown as Row[];
+      res.setHeader("Content-Disposition", `attachment; filename="${exportFilename(format, rawFrom, rawTo)}"`);
+      if (format === "csv") res.type("text/csv; charset=utf-8").send(toCsv(rows));
+      else res.json(rows.map((r) => ({ ...r, mica_compliant: !!r.mica_compliant })));
+      return;
+    }
+
+    const page = Math.max(0, parseInt(String(req.query.page ?? "0"), 10) || 0);
+    const total = (db.prepare(`SELECT count(*) AS c FROM transactions${whereSql}`).get(...params) as { c: number }).c;
+    const rows = db.prepare(`${selectAll} LIMIT ? OFFSET ?`).all(...params, pageSize, page * pageSize) as unknown as Row[];
+
+    res.type("html").send(renderPage(rows, page, pageSize, total, options.apiKey, rawFrom, rawTo));
   };
 }
