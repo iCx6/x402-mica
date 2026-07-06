@@ -3,6 +3,14 @@
   "version": "0.1.0",
   "description": "EU-facing x402 payment middleware with MiCA-compliance audit logging — Express middleware, MCP tool decorator, and audit dashboard",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iCx6/x402-mica.git"
+  },
+  "homepage": "https://github.com/iCx6/x402-mica#readme",
+  "bugs": {
+    "url": "https://github.com/iCx6/x402-mica/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=22.13"
