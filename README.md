@@ -79,6 +79,15 @@ app.get("/audit", auditDashboard({ dbPath: "./audit.db", apiKey: process.env.AUD
 
 Read-only, key-gated (`x-api-key` header or `?key=`), paginated HTML table over the audit log.
 
+The same route also exports the log: `?format=csv` or `?format=json`, optionally
+filtered with inclusive `?from=YYYY-MM-DD&to=YYYY-MM-DD`. The HTML view has the
+same date filter and download links. Example — Q2 as CSV:
+
+```sh
+curl -H "x-api-key: $AUDIT_API_KEY" -OJ \
+  "http://localhost:3000/audit?format=csv&from=2026-04-01&to=2026-06-30"
+```
+
 ## Networks & facilitators
 
 | Network | Facilitator | Keys needed |

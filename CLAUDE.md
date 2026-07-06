@@ -86,7 +86,9 @@ Sepolia (no keys, no real money); set `X402_NETWORK=eip155:8453` + `CDP_API_KEY_
 - `src/x402-middleware.ts` — `x402Middleware(options)` factory: wires x402 `paymentMiddleware`
   + facilitator, and attaches the `res.on("finish")` audit hook (fires only on paid requests).
 - `src/dashboard.ts` — `auditDashboard(options)` for `GET /audit`: read-only SQLite connection,
-  key check (`x-api-key` header or `?key=`), server-rendered HTML table, LIMIT/OFFSET paging.
+  key check (`x-api-key` header or `?key=`), server-rendered HTML table, LIMIT/OFFSET paging;
+  CSV/JSON export (`?format=`, RFC 4180 + formula-injection guard) with inclusive `?from=`/`?to=`
+  date filter shared by the HTML view.
 - `src/config.ts` — demo-only env → typed config (loads dotenv, requires `PAY_TO` at import
   time — must never be imported from library code).
 - `src/facilitator.ts` — `makeFacilitatorClient(network)` picks testnet x402.org vs mainnet CDP;
