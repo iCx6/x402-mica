@@ -71,6 +71,8 @@ x402 docs: https://docs.cdp.coinbase.com/x402/welcome
 - `npm run client` — pay `/demo` from a wallet (`CDP_WALLET_KEY`), driving a full paid loop
 - `npm run mcp` — the example MCP server (stdio) with a paywalled `echo` tool
 - `npm run mcp-client` — pay the MCP `echo` tool from a wallet, full paid MCP loop
+- `npm run mcp-http` — hosted MCP example (Streamable HTTP on :3001, same paywalled `echo`)
+- `npm run mcp-http-client` — pay the hosted `echo` over HTTP, full paid MCP loop
 - `npm test` — pure-logic self-checks (`audit.test.ts` + `dashboard.test.ts`, no network)
 
 Copy `.env.example` → `.env` and set `PAY_TO` before running. Default network is Base
@@ -98,6 +100,9 @@ Sepolia (no keys, no real money); set `X402_NETWORK=eip155:8453` + `CDP_API_KEY_
 - `src/mcp.ts` — `withPayment(handler, options)`: wraps any MCP tool handler with an x402 paywall
   (via `@x402/mcp` `createPaymentWrapper`) + audit logging on its `onAfterSettlement` hook.
 - `src/mcp-example.ts` — example `McpServer` (stdio) with a `withPayment`-gated `echo` tool.
+- `src/mcp-http-example.ts` / `src/mcp-http-client.ts` — hosted-MCP twins of the stdio pair:
+  Express + `StreamableHTTPServerTransport` (stateless) server and an HTTP paying client;
+  prove `withPayment` is transport-agnostic. Dev-only.
 - `src/audit.ts` — **the product**: `buildAuditRow()` (shared HTTP+MCP core) → audit row +
   `mica_compliant`; `parseSettlement()` decodes HTTP settlement headers then delegates to it.
   Pure functions, unit-tested.

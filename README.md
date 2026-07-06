@@ -69,6 +69,12 @@ server.tool("echo", "Echo back text. Requires $0.01 USDC.",
 );
 ```
 
+The decorator is transport-agnostic — the payment flow travels inside the MCP
+protocol, so the same tool works on a hosted Streamable HTTP server exactly as
+it does over stdio. See `src/mcp-http-example.ts` in the repo for a complete
+Express + `StreamableHTTPServerTransport` recipe (`npm run mcp-http`, then
+`npm run mcp-http-client` to pay it).
+
 ## Audit dashboard
 
 ```ts
