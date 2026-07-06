@@ -11,14 +11,15 @@ export interface AuditRow {
   micaCompliant: boolean;
 }
 
-// MiCA rule (Phase 1): a payment is MiCA-compliant iff it settled in USDC on a
-// Base network. USDC is MiCA-authorized via Circle's France EMI license; other
+// MiCA rule: a payment is MiCA-compliant iff it settled in USDC or EURC on a
+// Base network. Both are MiCA-authorized via Circle's France EMI license; other
 // assets (e.g. USDT) are not. Computed, not hard-coded, so a future non-compliant
 // asset/network logs `false` instead of silently claiming compliance.
 const BASE_NETWORKS = new Set(["eip155:8453", "eip155:84532"]); // mainnet, sepolia
+const MICA_ASSETS = new Set(["USDC", "EURC"]);
 
 export function isMicaCompliant(network: string, asset: string): boolean {
-  return BASE_NETWORKS.has(network) && asset.toUpperCase() === "USDC";
+  return BASE_NETWORKS.has(network) && MICA_ASSETS.has(asset.toUpperCase());
 }
 
 function decodeB64Json(header: string): any {

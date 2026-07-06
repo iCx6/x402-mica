@@ -73,4 +73,9 @@ assert.equal(
   null,
 );
 
+// EURC is MiCA-compliant on Base (Circle France EMI license), not elsewhere
+assert.equal(isMicaCompliant("eip155:8453", "EURC"), true);
+assert.equal(isMicaCompliant("eip155:84532", "eurc"), true);
+assert.equal(isMicaCompliant("eip155:1", "EURC"), false);
+
 console.log("audit.test.ts: all assertions passed");
