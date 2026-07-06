@@ -4,10 +4,11 @@ import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { makeFacilitatorClient } from "./facilitator.js";
 import { openDb, logTransaction } from "./db.js";
 import { buildAuditRow } from "./audit.js";
+import { resolvePrice, eip712Extra } from "./assets.js";
 
 export interface X402McpOptions {
-  price: string; // "$0.01"
-  asset: string; // "USDC" — audit label + MiCA check
+  price: string; // "$0.01" for USDC; plain euro decimal like "0.01" for EURC
+  asset?: string; // "USDC" (default) or "EURC" — selects the settlement asset; also the audit label
   network: `${string}:${string}`; // CAIP-2
   payTo: string;
   dbPath: string;
@@ -33,12 +34,14 @@ export function withPayment<A extends Record<string, unknown>>(
     // Fetch the facilitator's supported schemes/networks before verify/settle can work.
     await server.initialize();
     const db = openDb(options.dbPath);
+    // resolvePrice throws on bad config at first call — MCP wrapper is lazy by design
+    const asset = (options.asset ?? "USDC").toUpperCase();
     const accepts = await server.buildPaymentRequirements({
       scheme: "exact",
       network: options.network,
       payTo: options.payTo,
-      price: options.price,
-      extra: { name: "USDC", version: "2" },
+      price: resolvePrice(asset, options.network, options.price),
+      extra: eip712Extra(asset),
     });
 
     return createPaymentWrapper(server, {
@@ -47,7 +50,7 @@ export function withPayment<A extends Record<string, unknown>>(
       hooks: {
         // Fires after a successful settlement — log the compliance audit row.
         onAfterSettlement: ({ settlement }) => {
-          const row = buildAuditRow(settlement, { asset: options.asset, amount: options.price });
+          const row = buildAuditRow(settlement, { asset, amount: options.price });
           if (row) logTransaction(db, row);
         },
       },
