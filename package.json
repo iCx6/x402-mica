@@ -45,6 +45,8 @@
     "client": "tsx src/client.ts",
     "mcp": "tsx src/mcp-example.ts",
     "mcp-client": "tsx src/mcp-client.ts",
+    "mcp-http": "tsx src/mcp-http-example.ts",
+    "mcp-http-client": "tsx src/mcp-http-client.ts",
     "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts && tsx src/assets.test.ts",
     "prepack": "npm run build && npm test"
   },
