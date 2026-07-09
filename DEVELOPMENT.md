@@ -101,3 +101,33 @@ npm run mcp-client   # fizető MCP kliens: egy paid "echo" hívás
 Mit vársz: fizetés nélküli tool hívás **x402 payment-required** választ ad (a tool nem fut le);
 sikeres fizetés után a tool lefut, és egy **audit sor** kerül az `audit.db`-be (ugyanaz a
 `buildAuditRow` + `logTransaction`, amit a HTTP út is használ) — az `onAfterSettlement` hookon át.
+
+## 7. Saját MCP tool: cégjegyzék lookup
+
+Az első valódi (nem demo) fizetős tool: `verify_hungarian_company`
+(`src/mcp-company-lookup.ts` + `src/company-lookup.ts`). Magyar adószám alapján
+visszaadja a hivatalos cégnevet, székhelycímet és az áfa-érvényességet a
+hivatalos EU **VIES** REST API-ból ($0.02 USDC / lekérdezés).
+
+```bash
+npm run mcp-company                        # a cég-lookup MCP szerver (stdio transport)
+npm run build && npm run mcp-company-client  # fizető kliens: egy paid lekérdezés (Richter)
+npm run mcp-company-client -- 10537914       # tetszőleges adószámmal
+```
+
+Kutatási konklúzió: **nincs ingyenes hivatalos magyar cégkereső API** — a
+hivatalos gépi hozzáférés (OCCSZ XML) szerződéses és fizetős, ezért a forrás a
+VIES (`https://ec.europa.eu/taxation_customs/vies/rest-api/ms/HU/vat/{adószám}`),
+ami ingyenes és hivatalos, de szűkebb adatkört ad.
+
+Korlátok:
+- csak adószám alapján keres (cégnév-keresés nincs), az első 8 számjegyet használja;
+- nem ad cégjegyzékszámot, képviselőket, cégstátuszt;
+- **áfa-csoportos tagok (pl. nagybankok) `INVALID`-ot adnak**, pedig működő cégek — a
+  tool válasza ezt jelzi;
+- sikertelen VIES-hívásnál (timeout, `MS_UNAVAILABLE`, …) a handler hibát dob, így a
+  fizetés **cancel**-lel zárul, settlement és levonás nélkül. Az érvénytelen adószám
+  (`INVALID`) viszont valódi KYB-válasz, az fizetős.
+
+Bővítési út, ha teljes cégkivonat kell: fizetős `cegadatapi.hu` (~16e Ft/hó / 1000
+lekérés) vagy hivatalos OCCSZ-szerződés (cegszolgalat@mkifk.hu).

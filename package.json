@@ -44,10 +44,12 @@
     "start": "node dist/index.js",
     "client": "tsx src/client.ts",
     "mcp": "tsx src/mcp-example.ts",
+    "mcp-company": "tsx src/mcp-company-lookup.ts",
     "mcp-client": "tsx src/mcp-client.ts",
+    "mcp-company-client": "tsx src/mcp-company-client.ts",
     "mcp-http": "tsx src/mcp-http-example.ts",
     "mcp-http-client": "tsx src/mcp-http-client.ts",
-    "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts && tsx src/assets.test.ts",
+    "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts && tsx src/assets.test.ts && tsx src/company-lookup.test.ts",
     "prepack": "npm run build && npm test"
   },
   "dependencies": {
