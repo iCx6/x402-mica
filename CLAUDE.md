@@ -10,7 +10,10 @@ generation. **The product is the software layer** — payment-gating + complianc
 metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
 itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-## Status (2026-07-09) — v0.2.1 patch
+## Status (2026-07-09) — v0.2.1 PUBLISHED on npm
+
+- Published 2026-07-09, post-publish smoke test passed (fresh registry install:
+  all 9 exports load, missing-db dashboard serves the empty state, no crash).
 
 - 0.2.1: `auditDashboard` opens its read-only SQLite connection lazily on first
   request — the eager factory-time open crashed consumers at startup whenever the
