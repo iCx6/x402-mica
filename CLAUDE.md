@@ -10,10 +10,13 @@ generation. **The product is the software layer** — payment-gating + complianc
 metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
 itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-## Status (2026-07-09) — v0.2.1 PUBLISHED on npm
+## Status (2026-07-09) — v0.2.2 PUBLISHED on npm
 
-- Published 2026-07-09, post-publish smoke test passed (fresh registry install:
-  all 9 exports load, missing-db dashboard serves the empty state, no crash).
+- 0.2.1: `auditDashboard` opens its db lazily (eager open crashed fresh deploys).
+- 0.2.2: mainnet USDC EIP-712 domain fix on the MCP path (`"USD Coin"`, not `"USDC"`).
+  Both found by dogfooding the eu-tools-mcp deployment; both live-verified on Fly.
+- **First production consumer live:** https://eu-tools-mcp.fly.dev (paid MCP tools,
+  Base mainnet USDC, real settled txs in its public audit dashboard).
 
 - 0.2.1: `auditDashboard` opens its read-only SQLite connection lazily on first
   request — the eager factory-time open crashed consumers at startup whenever the
@@ -38,7 +41,8 @@ itself is solved by x402; the `mica_compliant` flag and audit trail are the diff
 
 ## Future roadmap (unordered ideas — build only on demand)
 
-- Cloud deploy of the hosted MCP demo (Fly/Render/etc.) — recipe already works on any Node host.
+- ~~Cloud deploy of the hosted MCP demo~~ — shipped as the separate `eu-tools-mcp`
+  project (github.com/iCx6/eu-tools-mcp, live on Fly.io, Base mainnet).
 - Stateful MCP sessions (SSE notification stream, session teardown) on the HTTP example.
 - Custom ERC-20 assets via Permit2; multiple accepted assets per route.
 - Export upgrades: XLSX, streaming for huge logs, non-date filters (asset/payer/network).
