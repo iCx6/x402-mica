@@ -10,6 +10,17 @@ with built-in MiCA-compliance flagging and audit-trail generation.
 - **USDC on Base** by default; **EURC** (Circle's euro stablecoin) as an opt-in
   `asset: "EURC"` — both MiCA-compliant via Circle's France EMI license.
 
+## See it live
+
+[**eu-tools-mcp**](https://github.com/iCx6/eu-tools-mcp) is a production deployment
+built on this package: paid MCP tools for AI agents (EU VAT validation + official ECB
+FX rates), settling real USDC on Base mainnet.
+
+- Endpoint: `https://eu-tools-mcp.fly.dev/mcp` (MCP Streamable HTTP)
+- [Live public audit dashboard](https://eu-tools-mcp.fly.dev/audit?key=demo-c43d89b159ec2227) —
+  every paid call with its `mica_compliant` flag and on-chain settlement tx,
+  CSV/JSON export included. That dashboard *is* this package's output.
+
 ## Install
 
 ```sh
