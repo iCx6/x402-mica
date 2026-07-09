@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { short, explorerTxUrl, esc, toCsv, dateBounds, exportFilename } from "./dashboard.js";
+import { auditDashboard, short, explorerTxUrl, esc, toCsv, dateBounds, exportFilename } from "./dashboard.js";
 
 // short(): truncate long, pass through short
 assert.equal(short("0x1234567890abcdef1234"), "0x1234…1234");
@@ -34,5 +34,21 @@ assert(csv.endsWith(",0x82df,1\r\n"));
 // exportFilename
 assert.equal(exportFilename("csv", "2026-04-01", "2026-06-30"), "x402-mica-audit-2026-04-01-2026-06-30.csv");
 assert.equal(exportFilename("json", undefined, undefined), "x402-mica-audit.json");
+
+// auditDashboard with a missing db file: factory must not throw (fresh deploy,
+// no payment logged yet), and an authorized request gets the empty state.
+{
+  const handler = auditDashboard({ dbPath: "no-such-dir/no-such-audit.db", apiKey: "k" });
+  let body = "";
+  const res = {
+    status() { return this; },
+    type() { return this; },
+    setHeader() { return this; },
+    send(b: unknown) { body = String(b); return this; },
+    json(o: unknown) { body = JSON.stringify(o); return this; },
+  };
+  handler({ header: () => "k", query: {} } as never, res as never, () => {});
+  assert(body.includes("No transactions yet"), `expected empty state, got: ${body.slice(0, 120)}`);
+}
 
 console.log("dashboard.test.ts: all assertions passed");

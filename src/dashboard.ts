@@ -1,4 +1,5 @@
 import type { RequestHandler } from "express";
+import { existsSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
 export interface DashboardOptions {
@@ -162,10 +163,12 @@ function renderPage(
 export function auditDashboard(options: DashboardOptions): RequestHandler {
   const pageSize = options.pageSize ?? 50;
   // Read-only connection reused across requests (do NOT use openDb() — it writes/creates).
-  const db = options.apiKey ? new DatabaseSync(options.dbPath, { readOnly: true }) : null;
+  // Opened lazily: on a fresh deploy the db file only appears with the first payment,
+  // and an eager readOnly open of a missing file would crash the server at startup.
+  let db: DatabaseSync | null = null;
 
   return (req, res) => {
-    if (!options.apiKey || !db) {
+    if (!options.apiKey) {
       res.status(503).send("audit dashboard disabled: set AUDIT_API_KEY");
       return;
     }
@@ -192,6 +195,8 @@ export function auditDashboard(options: DashboardOptions): RequestHandler {
       return;
     }
 
+    if (!db && existsSync(options.dbPath)) db = new DatabaseSync(options.dbPath, { readOnly: true });
+
     const where: string[] = [];
     const params: string[] = [];
     if (bounds.from) { where.push("ts >= ?"); params.push(bounds.from); }
@@ -202,7 +207,7 @@ export function auditDashboard(options: DashboardOptions): RequestHandler {
 
     if (format) {
       // ponytail: full filtered set in memory — stream it if the log ever outgrows SQLite scale.
-      const rows = db.prepare(selectAll).all(...params) as unknown as Row[];
+      const rows = db ? (db.prepare(selectAll).all(...params) as unknown as Row[]) : [];
       res.setHeader("Content-Disposition", `attachment; filename="${exportFilename(format, rawFrom, rawTo)}"`);
       if (format === "csv") res.type("text/csv; charset=utf-8").send(toCsv(rows));
       else res.json(rows.map((r) => ({ ...r, mica_compliant: !!r.mica_compliant })));
@@ -210,8 +215,12 @@ export function auditDashboard(options: DashboardOptions): RequestHandler {
     }
 
     const page = Math.max(0, parseInt(String(req.query.page ?? "0"), 10) || 0);
-    const total = (db.prepare(`SELECT count(*) AS c FROM transactions${whereSql}`).get(...params) as { c: number }).c;
-    const rows = db.prepare(`${selectAll} LIMIT ? OFFSET ?`).all(...params, pageSize, page * pageSize) as unknown as Row[];
+    const total = db
+      ? (db.prepare(`SELECT count(*) AS c FROM transactions${whereSql}`).get(...params) as { c: number }).c
+      : 0;
+    const rows = db
+      ? (db.prepare(`${selectAll} LIMIT ? OFFSET ?`).all(...params, pageSize, page * pageSize) as unknown as Row[])
+      : [];
 
     res.type("html").send(renderPage(rows, page, pageSize, total, options.apiKey, rawFrom, rawTo));
   };
