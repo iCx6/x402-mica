@@ -57,6 +57,10 @@ itself is solved by x402; the `mica_compliant` flag and audit trail are the diff
 
 ## Gotchas (hard-won, verified on-chain)
 
+- USDC's EIP-712 domain **name** differs per network: Base mainnet = `"USD Coin"`,
+  Base Sepolia = `"USDC"` (both version "2"). A Sepolia-passing MCP payment loop can
+  still fail on mainnet with a generic `execution reverted` if the domain name is wrong.
+
 - CDP facilitator rejects payer == payTo (`self_send_not_allowed`) — no self-payment tests.
 - An EIP-7702-delegated wallet (code `0xef0100…`, e.g. Coinbase Smart Wallet upgrade)
   cannot be an x402 payer with a raw key — USDC verifies via ERC-1271 and rejects ECDSA
