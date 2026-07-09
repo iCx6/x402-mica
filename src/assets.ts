@@ -33,7 +33,16 @@ export function resolvePrice(asset: string, network: string, price: string): str
   return { asset: address, amount: convertToTokenAmount(decimal, EURC_DECIMALS), extra: { ...EURC_DOMAIN } };
 }
 
+// USDC's EIP-712 domain name differs per network (verified on-chain 2026-07-09
+// via name()): mainnet is "USD Coin", Sepolia is "USDC". A wrong name breaks
+// every transferWithAuthorization signature on that network.
+const USDC_DOMAIN_NAMES: Record<string, string> = {
+  "eip155:8453": "USD Coin", // Base mainnet
+  "eip155:84532": "USDC", // Base Sepolia
+};
+
 /** EIP-712 domain for buildPaymentRequirements' `extra` (MCP path). */
-export function eip712Extra(asset: string): { name: string; version: string } {
-  return asset.toUpperCase() === "EURC" ? { ...EURC_DOMAIN } : { name: "USDC", version: "2" };
+export function eip712Extra(asset: string, network: string): { name: string; version: string } {
+  if (asset.toUpperCase() === "EURC") return { ...EURC_DOMAIN };
+  return { name: USDC_DOMAIN_NAMES[network] ?? "USDC", version: "2" };
 }

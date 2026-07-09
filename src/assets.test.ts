@@ -27,8 +27,11 @@ assert.throws(() => resolvePrice("EURC", "eip155:8453", "$0.01"), /Invalid EURC 
 assert.throws(() => resolvePrice("EURC", "eip155:8453", "abc"), /Invalid EURC price/);
 assert.throws(() => resolvePrice("EURC", "eip155:8453", "0.1234567"), /Invalid EURC price/);
 
-// EIP-712 domain for the MCP path
-assert.deepEqual(eip712Extra("EURC"), { name: "EURC", version: "2" });
-assert.deepEqual(eip712Extra("USDC"), { name: "USDC", version: "2" });
+// EIP-712 domain for the MCP path — USDC's domain name differs per network
+// (verified on-chain 2026-07-09: mainnet "USD Coin", Sepolia "USDC"; a wrong
+// name makes every mainnet MCP payment fail signature verification).
+assert.deepEqual(eip712Extra("EURC", "eip155:8453"), { name: "EURC", version: "2" });
+assert.deepEqual(eip712Extra("USDC", "eip155:8453"), { name: "USD Coin", version: "2" });
+assert.deepEqual(eip712Extra("USDC", "eip155:84532"), { name: "USDC", version: "2" });
 
 console.log("assets.test.ts: all assertions passed");

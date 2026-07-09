@@ -41,7 +41,7 @@ export function withPayment<A extends Record<string, unknown>>(
       network: options.network,
       payTo: options.payTo,
       price: resolvePrice(asset, options.network, options.price),
-      extra: eip712Extra(asset),
+      extra: eip712Extra(asset, options.network),
     });
 
     return createPaymentWrapper(server, {
