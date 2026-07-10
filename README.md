@@ -4,6 +4,8 @@ EU-facing payment middleware for AI-agent and API micropayments on the
 [x402 protocol](https://docs.cdp.coinbase.com/x402/welcome) (HTTP 402 + stablecoins),
 with built-in MiCA-compliance flagging and audit-trail generation.
 
+**Landing page:** https://icx6.github.io/x402-mica/
+
 - **Non-custodial** — funds flow payer-wallet → your wallet via x402; this library never touches them.
 - **MiCA audit trail** — every paid request logs timestamp, asset, amount, payer address,
   a `mica_compliant` flag, and the facilitator's transaction reference to SQLite.

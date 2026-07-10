@@ -17,6 +17,9 @@ itself is solved by x402; the `mica_compliant` flag and audit trail are the diff
   Both found by dogfooding the eu-tools-mcp deployment; both live-verified on Fly.
 - **First production consumer live:** https://eu-tools-mcp.fly.dev (paid MCP tools,
   Base mainnet USDC, real settled txs in its public audit dashboard).
+- **Landing page live:** https://icx6.github.io/x402-mica/ (GitHub Pages from
+  `docs/index.html`, the "Official Journal" design from `Design/`). Repo made
+  public 2026-07-10 (history secret-scanned first; Pages requires public on free plan).
 
 - 0.2.1: `auditDashboard` opens its read-only SQLite connection lazily on first
   request — the eager factory-time open crashed consumers at startup whenever the
