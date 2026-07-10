@@ -10,7 +10,7 @@ generation. **The product is the software layer** — payment-gating + complianc
 metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
 itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-## Status (2026-07-09) — v0.2.2 PUBLISHED on npm
+## Status (2026-07-10) — v0.2.2 on npm, landing page live, repo public
 
 - 0.2.1: `auditDashboard` opens its db lazily (eager open crashed fresh deploys).
 - 0.2.2: mainnet USDC EIP-712 domain fix on the MCP path (`"USD Coin"`, not `"USDC"`).
@@ -39,8 +39,11 @@ itself is solved by x402; the `mica_compliant` flag and audit trail are the diff
 
 ## TODO
 
-1. **Validation before more code** — README showcase, launch post, first outside users.
-   New features are guesses until someone external uses the package.
+1. **Launch post (NEXT)** — Reddit first (r/mcp + r/SideProject), user posts manually;
+   drafts in `docs/launch-post-drafts.md` (still uncommitted). Landing + README + live
+   demo are all in place to link.
+2. **Validation before more code** — first outside users. New features are guesses
+   until someone external uses the package.
 
 ## Future roadmap (unordered ideas — build only on demand)
 
