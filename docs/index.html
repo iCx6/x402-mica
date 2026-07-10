@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>x402-mica — MiCA-compliant x402 payments for EU-facing APIs & MCP tools</title>
+<meta name="description" content="EU-facing x402 payment middleware with built-in MiCA audit trails. Express middleware, MCP tool decorator, USDC & EURC on Base. Non-custodial, one npm install.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,500;0,6..72,600;1,6..72,500;1,6..72,600&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FAF7EF;        /* cream page background */
+    --panel:#FFFDF6;        /* card / receipt background */
+    --ink:#14224C;          /* primary text, deep navy */
+    --slate:#565F7E;        /* body secondary text */
+    --muted:#5C6382;        /* nav links, small labels */
+    --tan:#9B937B;          /* receipt keys, de-emphasized */
+    --line:#E4DEC9;         /* hairlines on cream */
+    --line-2:#D8D1BC;       /* slightly darker hairline / dashed rules */
+    --chip:#F1EBDB;         /* inline-code chip background */
+    --gold:#B78A2E;         /* primary gold (kickers, rules, buttons) */
+    --gold-bright:#E5B84F;  /* gold on dark navy */
+    --gold-dark:#A07924;    /* gold hover */
+    --navy:#0E1D52;         /* code block background */
+    --hero-top:#10225C;     /* hero gradient start */
+    --hero-bottom:#0B1740;  /* hero gradient end */
+    --blue:#16357F;         /* request lines, stamp, links */
+    --green:#1E7B4F;        /* 200 OK, compliant flag */
+    --amber:#A87A1F;        /* 402 line on cream */
+    --hero-lede:#B9C2E0;    /* lede text on navy */
+    --hero-dim:#8E9AC4;     /* meta text on navy */
+    --code-base:#CDD7F2;
+    --code-kw:#93AEF5;
+    --code-str:#E5B84F;
+    --code-cm:#6A7BAF;
+    --code-fn:#55C795;
+    --serif:'Newsreader',Georgia,serif;
+    --body:'Public Sans',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  a{color:var(--blue);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 40px}
+  :focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:2px}
+
+  /* ---------- top rule + header ---------- */
+  .goldbar{height:4px;background:var(--gold)}
+  header{border-bottom:1px solid var(--line);background:var(--paper)}
+  .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+  .wordmark{font-family:var(--mono);font-weight:600;font-size:15px;color:var(--ink);letter-spacing:-.01em}
+  .wordmark .code402{color:var(--gold)}
+  .nav-links{display:flex;gap:26px;align-items:center;font-size:13.5px;font-weight:600}
+  .nav-links a{color:var(--muted)}
+  .nav-links a:hover{color:var(--ink);text-decoration:none}
+  .nav-links a.gh{color:var(--ink)}
+  .nav-links a.npm-btn{border:1.5px solid var(--ink);color:var(--ink);padding:7px 16px;border-radius:6px;transition:background .15s,color .15s}
+  .nav-links a.npm-btn:hover{background:var(--ink);color:var(--paper);text-decoration:none}
+
+  /* ---------- hero band (dark navy) ---------- */
+  .hero-band{background:linear-gradient(180deg,var(--hero-top),var(--hero-bottom));padding:72px 48px 0;text-align:center;color:#F5F1E4}
+  .star-ring{position:relative;width:150px;height:150px;margin:0 auto 8px}
+  .star-ring>span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(var(--r)) translateY(-58px);color:var(--gold-bright);font-size:14px}
+  .star-ring>span>i{display:inline-block;font-style:normal;transform:rotate(calc(var(--r) * -1))}
+  .ring-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--hero-dim)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:14px}
+  h1{font-family:var(--serif);font-weight:600;font-size:clamp(2.3rem,4.6vw,3.375rem);line-height:1.1;letter-spacing:-.01em;max-width:850px;margin:0 auto 16px;color:#F5F1E4}
+  h1 em{font-style:italic;color:var(--gold-bright)}
+  .lede{color:var(--hero-lede);font-size:16.5px;max-width:62ch;margin:0 auto 30px}
+  .install-row{display:flex;justify-content:center;margin-bottom:10px}
+  .install{display:flex;align-items:center;border-radius:8px;background:#FBF8F1;overflow:hidden;box-shadow:0 12px 32px -12px rgba(0,0,0,.5)}
+  .install code{font-family:var(--mono);font-size:14px;padding:13px 20px;color:var(--ink);white-space:nowrap;overflow-x:auto}
+  .install button{border:0;background:var(--gold);color:#FBF8F1;font-family:var(--body);font-weight:700;font-size:13.5px;padding:14px 20px;cursor:pointer;transition:background .15s}
+  .install button:hover{background:var(--gold-dark)}
+  .hero-meta{font-size:13px;color:var(--hero-dim)}
+
+  /* ---------- receipt (signature) ---------- */
+  .receipt{position:relative;width:620px;max-width:100%;margin:48px auto -96px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:4px;box-shadow:0 24px 48px -20px rgba(8,15,40,.45);color:var(--ink)}
+  .r-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-bottom:1px dashed var(--line-2)}
+  .r-title{font-family:var(--mono);font-size:11px;letter-spacing:.14em;color:var(--muted)}
+  .r-replay{border:1px solid var(--line-2);background:transparent;color:var(--gold);font-family:var(--mono);font-size:11px;padding:3px 10px;border-radius:4px;cursor:pointer;transition:border-color .15s}
+  .r-replay:hover{border-color:var(--gold)}
+  .r-body{padding:18px 22px 22px;font-family:var(--mono);font-size:12.5px;line-height:1.85}
+  .r-line{opacity:0;transform:translateY(4px);transition:opacity .3s ease,transform .3s ease}
+  .r-line.show{opacity:1;transform:none}
+  .r-row{display:grid;grid-template-columns:130px 1fr}
+  .r-key{color:var(--tan)}
+  .r-req{color:var(--blue)}
+  .r-402{color:var(--amber);font-weight:600}
+  .r-200{color:var(--green);font-weight:600}
+  .r-dim{color:var(--tan)}
+  .r-cut{height:10px;border-bottom:1px dashed var(--line-2);margin-bottom:12px}
+  .stamp{position:absolute;right:22px;bottom:20px;opacity:0;transform:scale(1.6) rotate(-16deg);transition:opacity .35s ease,transform .35s cubic-bezier(.2,1.6,.4,1);border:2px solid var(--blue);color:var(--blue);border-radius:6px;padding:7px 12px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;line-height:1.5;text-align:center;background:rgba(255,253,246,.85)}
+  .stamp.show{opacity:1;transform:scale(1) rotate(-7deg)}
+
+  /* ---------- sections ---------- */
+  section{border-top:1px solid var(--line);padding:76px 0}
+  section.first{border-top:none;padding-top:150px} /* clears the overlapping receipt */
+  .kicker{font-family:var(--serif);font-style:italic;font-size:19px;color:var(--gold);margin-bottom:8px}
+  h2{font-family:var(--serif);font-weight:600;font-size:34px;letter-spacing:-.01em;margin-bottom:10px}
+  .rule{width:56px;height:2px;background:var(--gold);margin:18px 0 22px}
+  .section-lede{color:var(--slate);max-width:62ch;margin-bottom:44px}
+  code.chip{font-family:var(--mono);font-size:12px;background:var(--chip);padding:1px 6px;border-radius:3px}
+
+  /* pillars */
+  .pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:40px}
+  .pillar{border-top:1px solid var(--line-2);padding-top:20px}
+  .pillar .roman{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+  .pillar h3{font-family:var(--serif);font-weight:600;font-size:21px;margin-bottom:10px}
+  .pillar p{font-size:14.5px;color:var(--slate)}
+
+  /* exhibits (code) */
+  .exhibit-label{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+  .codeblock{background:var(--navy);border-radius:6px;padding:22px 24px;overflow-x:auto}
+  .codeblock pre{font-family:var(--mono);font-size:13px;line-height:1.75;color:var(--code-base)}
+  .exhibit-grid .codeblock pre{font-size:12.5px}
+  .codeblock .c-kw{color:var(--code-kw)}
+  .codeblock .c-str{color:var(--code-str)}
+  .codeblock .c-cm{color:var(--code-cm)}
+  .codeblock .c-fn{color:var(--code-fn)}
+  .exhibit{margin-bottom:36px}
+  .exhibit-grid{display:grid;grid-template-columns:1fr 1fr;gap:32px}
+  .exhibit-grid>div{min-width:0}
+  .code-note{margin-top:24px;font-size:14px;color:var(--slate);max-width:78ch}
+
+  /* demo notice */
+  .notice{border:1.5px solid var(--gold);background:var(--panel);border-radius:8px;padding:38px 42px;display:flex;justify-content:space-between;align-items:center;gap:40px}
+  .notice-label{font-family:var(--mono);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+  .notice h2{font-size:28px;margin-bottom:8px}
+  .notice p{color:var(--slate);font-size:15px;max-width:56ch}
+  .btn{flex:0 0 auto;display:inline-block;background:var(--ink);color:var(--paper);font-weight:700;font-size:15px;padding:14px 26px;border-radius:6px;transition:background .15s}
+  .btn:hover{background:var(--navy);text-decoration:none}
+
+  /* networks table */
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);font-size:14.5px}
+  th{text-align:left;padding:13px 20px;border-bottom:2px solid var(--ink);font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:500}
+  td{text-align:left;padding:14px 20px;border-bottom:1px solid var(--line)}
+  tr:last-child td{border-bottom:none}
+  .td-note{color:var(--tan)}
+
+  /* footer */
+  footer{border-top:1px solid var(--line);padding:36px 0;text-align:center;font-size:13.5px;color:var(--muted)}
+  .foot-stars{color:var(--gold);font-size:10px;letter-spacing:7px;margin-bottom:14px}
+  .foot-links{display:flex;justify-content:center;gap:22px;margin-bottom:8px}
+  .foot-links a{color:var(--ink)}
+  footer .credit a{color:var(--gold)}
+
+  @media (max-width:900px){
+    .wrap{padding:0 20px}
+    .hero-band{padding:56px 20px 0}
+    .pillars{grid-template-columns:1fr;gap:28px}
+    .exhibit-grid{grid-template-columns:1fr}
+    .notice{flex-direction:column;align-items:flex-start}
+    .nav-links a:not(.gh):not(.npm-btn){display:none}
+    section.first{padding-top:130px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    .r-line,.stamp{transition:none;opacity:1;transform:none}
+    .stamp{transform:rotate(-7deg)}
+    html{scroll-behavior:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="goldbar"></div>
+
+<header>
+  <div class="wrap nav">
+    <div class="wordmark"><span class="code402">402</span>-mica</div>
+    <nav class="nav-links">
+      <a href="#quickstart">Quickstart</a>
+      <a href="#demo">Live demo</a>
+      <a href="#networks">Networks</a>
+      <a class="gh" href="https://github.com/iCx6/x402-mica">GitHub</a>
+      <a class="npm-btn" href="https://www.npmjs.com/package/x402-mica">npm</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- hero band -->
+  <div class="hero-band">
+    <div class="star-ring" aria-hidden="true">
+      <span style="--r:0deg"><i>★</i></span>
+      <span style="--r:30deg"><i>★</i></span>
+      <span style="--r:60deg"><i>★</i></span>
+      <span style="--r:90deg"><i>★</i></span>
+      <span style="--r:120deg"><i>★</i></span>
+      <span style="--r:150deg"><i>★</i></span>
+      <span style="--r:180deg"><i>★</i></span>
+      <span style="--r:210deg"><i>★</i></span>
+      <span style="--r:240deg"><i>★</i></span>
+      <span style="--r:270deg"><i>★</i></span>
+      <span style="--r:300deg"><i>★</i></span>
+      <span style="--r:330deg"><i>★</i></span>
+      <span class="ring-center">402</span>
+    </div>
+    <p class="eyebrow">x402 · MiCA · Base · USDC / EURC</p>
+    <h1>Charge AI agents per call. Keep the <em>audit trail</em> MiCA will ask for.</h1>
+    <p class="lede">x402-mica is an EU-facing payment layer for the x402 protocol: an Express middleware and an MCP tool decorator that paywall any endpoint with stablecoins — and log every settled payment to a compliance-ready audit trail.</p>
+    <div class="install-row">
+      <div class="install">
+        <code id="install-cmd">npm install x402-mica</code>
+        <button type="button" onclick="copyInstall(this)">Copy</button>
+      </div>
+    </div>
+    <p class="hero-meta">Non-custodial · MIT · Node ≥ 22 · USDC default, EURC opt-in</p>
+
+    <!-- signature: audit receipt -->
+    <div class="receipt" id="receipt" aria-label="Example x402 payment exchange and audit record">
+      <div class="r-bar">
+        <span class="r-title">AUDIT RECORD — audit.db</span>
+        <button type="button" class="r-replay" onclick="playFlow()">↺ replay</button>
+      </div>
+      <div class="r-body">
+        <div class="r-line"><span class="r-req">→ GET /eu-vat-check</span> <span class="r-dim">·</span> <span class="r-402">← 402 Payment Required</span></div>
+        <div class="r-line"><span class="r-req">→ GET /eu-vat-check</span> <span class="r-dim">+ X-PAYMENT ·</span> <span class="r-200">← 200 OK</span></div>
+        <div class="r-cut"></div>
+        <div class="r-line r-row"><span class="r-key">ts</span><span>2026-07-10T14:02:11Z</span></div>
+        <div class="r-line r-row"><span class="r-key">asset</span><span>USDC <span class="r-dim">(e-money token)</span></span></div>
+        <div class="r-line r-row"><span class="r-key">amount</span><span>0.01</span></div>
+        <div class="r-line r-row"><span class="r-key">payer</span><span>0x31f0…9aD1</span></div>
+        <div class="r-line r-row"><span class="r-key">tx_ref</span><span>0x5c… <span class="r-dim">· settled on Base</span></span></div>
+        <div class="r-line r-row"><span class="r-key">network</span><span>eip155:8453</span></div>
+        <div class="r-line r-row"><span class="r-key">mica_compliant</span><span class="r-200">true</span></div>
+      </div>
+      <div class="r-line stamp">MiCA ★ RECORD<br>✓ COMPLETE</div>
+    </div>
+  </div>
+
+  <section class="first">
+    <div class="wrap">
+      <p class="kicker">§ 1 — Compliance</p>
+      <h2>Payments are the easy part. The paperwork isn't.</h2>
+      <div class="rule"></div>
+      <p class="section-lede">The x402 stack handles the 402 challenge and on-chain settlement. What EU-facing sellers additionally need — a record of who paid what, in which asset, settled where — is what this library adds on top.</p>
+      <div class="pillars">
+        <div class="pillar">
+          <p class="roman">I. custody</p>
+          <h3>Non-custodial by design</h3>
+          <p>Funds move payer-wallet → your wallet through the x402 facilitator. This library never touches, holds, or forwards money — it observes and records. That's what keeps you a software vendor, not a payment institution.</p>
+        </div>
+        <div class="pillar">
+          <p class="roman">II. audit</p>
+          <h3>MiCA audit trail, built in</h3>
+          <p>Every settled request logs timestamp, asset, amount, payer address, the facilitator's transaction reference, and a <code class="chip">mica_compliant</code> flag to SQLite. A read-only, key-gated dashboard exports it as HTML, CSV, or JSON, filtered by date range.</p>
+        </div>
+        <div class="pillar">
+          <p class="roman">III. assets</p>
+          <h3>USDC &amp; EURC on Base</h3>
+          <p>USDC by default; Circle's euro stablecoin EURC as a one-line opt-in (<code class="chip">asset: "EURC"</code>). Both are e-money tokens issued under Circle's French EMI license — MiCA-compliant assets, priced in dollars or euros as you prefer.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="quickstart">
+    <div class="wrap">
+      <p class="kicker">§ 2 — Integration</p>
+      <h2>Two integration points, one line each</h2>
+      <div class="rule"></div>
+      <p class="section-lede">Paywall an Express route, or wrap any MCP tool so AI agents pay per call — same options, same audit trail, transport-agnostic.</p>
+
+      <div class="exhibit">
+        <p class="exhibit-label">Exhibit A — Express middleware</p>
+        <div class="codeblock">
+<pre><span class="c-kw">import</span> express <span class="c-kw">from</span> <span class="c-str">"express"</span>;
+<span class="c-kw">import</span> { x402Middleware } <span class="c-kw">from</span> <span class="c-str">"x402-mica"</span>;
+
+<span class="c-kw">const</span> app = <span class="c-fn">express</span>();
+
+app.<span class="c-fn">use</span>(<span class="c-fn">x402Middleware</span>({
+  route: <span class="c-str">"GET /demo"</span>,
+  price: <span class="c-str">"$0.01"</span>,
+  asset: <span class="c-str">"USDC"</span>,          <span class="c-cm">// or "EURC" with price "0.01"</span>
+  network: <span class="c-str">"eip155:84532"</span>, <span class="c-cm">// Base Sepolia; "eip155:8453" = mainnet</span>
+  payTo: <span class="c-str">"0xYourWallet"</span>,
+  dbPath: <span class="c-str">"./audit.db"</span>,
+}));
+
+app.<span class="c-fn">get</span>(<span class="c-str">"/demo"</span>, (_req, res) =&gt; res.<span class="c-fn">json</span>({ ok: <span class="c-kw">true</span> }));
+app.<span class="c-fn">listen</span>(3000);</pre>
+        </div>
+      </div>
+
+      <div class="exhibit-grid">
+        <div>
+          <p class="exhibit-label">Exhibit B — MCP tool decorator</p>
+          <div class="codeblock">
+<pre><span class="c-kw">import</span> { withPayment } <span class="c-kw">from</span> <span class="c-str">"x402-mica"</span>;
+
+server.<span class="c-fn">tool</span>(<span class="c-str">"echo"</span>, <span class="c-str">"Requires $0.01 USDC."</span>,
+  { text: z.<span class="c-fn">string</span>() },
+  <span class="c-fn">withPayment</span>(<span class="c-kw">async</span> ({ text }) =&gt; ({
+    content: [{ type: <span class="c-str">"text"</span>, text }] }), {
+    price: <span class="c-str">"$0.01"</span>, asset: <span class="c-str">"USDC"</span>,
+    network: <span class="c-str">"eip155:84532"</span>,
+    payTo: <span class="c-str">"0xYourWallet"</span>,
+    dbPath: <span class="c-str">"./audit.db"</span>,
+  }),
+);
+<span class="c-cm">// Transport-agnostic: stdio + Streamable HTTP —</span>
+<span class="c-cm">// the payment travels inside MCP.</span></pre>
+          </div>
+        </div>
+        <div>
+          <p class="exhibit-label">Exhibit C — Audit dashboard</p>
+          <div class="codeblock">
+<pre><span class="c-kw">import</span> { auditDashboard } <span class="c-kw">from</span> <span class="c-str">"x402-mica"</span>;
+
+app.<span class="c-fn">get</span>(<span class="c-str">"/audit"</span>, <span class="c-fn">auditDashboard</span>({
+  dbPath: <span class="c-str">"./audit.db"</span>,
+  apiKey: process.env.AUDIT_API_KEY,
+}));
+
+<span class="c-cm">// Read-only, key-gated. Export the log:</span>
+<span class="c-cm">//   /audit?format=csv&amp;from=2026-04-01&amp;to=2026-06-30</span>
+<span class="c-cm">//   /audit?format=json</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <p class="code-note">Unpaid requests get an HTTP 402 challenge with payment instructions; paid requests pass through and are audit-logged. Verification and settlement are delegated to the facilitator — no hand-rolled signature checks, no custody.</p>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="wrap">
+      <div class="notice">
+        <div>
+          <p class="notice-label">Notice — live demo</p>
+          <h2>Try it against a live server</h2>
+          <p>eu-tools-mcp is a running demo network built on x402-mica: EU-focused MCP tools behind real x402 paywalls on Base Sepolia. No account, no API key — testnet USDC is free from the faucet.</p>
+        </div>
+        <!-- TODO: verify demo URL before publishing -->
+        <a class="btn" href="https://eu-tools-mcp.fly.dev">Open the demo →</a>
+      </div>
+    </div>
+  </section>
+
+  <section id="networks">
+    <div class="wrap">
+      <p class="kicker">§ 3 — Networks</p>
+      <h2>Networks &amp; facilitators</h2>
+      <div class="rule"></div>
+      <p class="section-lede">Start on testnet with zero keys; move to mainnet with Coinbase CDP credentials when you're ready to charge real money.</p>
+      <table>
+        <thead>
+          <tr><th>Network</th><th>Facilitator</th><th>Keys needed</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Base Sepolia <code class="chip">eip155:84532</code> <span class="td-note">(default)</span></td>
+            <td>x402.org (open)</td>
+            <td>none</td>
+          </tr>
+          <tr>
+            <td>Base mainnet <code class="chip">eip155:8453</code></td>
+            <td>Coinbase CDP hosted</td>
+            <td><code class="chip">CDP_API_KEY_ID</code> <code class="chip">CDP_API_KEY_SECRET</code></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="foot-stars" aria-hidden="true">★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★ ★</div>
+    <nav class="foot-links">
+      <a href="https://www.npmjs.com/package/x402-mica">npm</a>
+      <a href="https://github.com/iCx6/x402-mica">GitHub</a>
+      <a href="https://github.com/iCx6/x402-mica/issues">Issues</a>
+    </nav>
+    <span class="credit">x402-mica · MIT license · built by <a href="https://github.com/iCx6">iCx6</a></span>
+  </div>
+</footer>
+
+<script>
+function copyInstall(btn){
+  navigator.clipboard.writeText('npm install x402-mica').then(()=>{
+    const t=btn.textContent; btn.textContent='Copied';
+    setTimeout(()=>btn.textContent=t,1600);
+  });
+}
+function playFlow(){
+  const lines=document.querySelectorAll('#receipt .r-line');
+  const reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  lines.forEach(l=>l.classList.remove('show'));
+  if(reduce){lines.forEach(l=>l.classList.add('show'));return}
+  // force reflow so the transition restarts on replay
+  void document.getElementById('receipt').offsetWidth;
+  lines.forEach((l,i)=>setTimeout(()=>l.classList.add('show'),320+i*380));
+}
+window.addEventListener('load',playFlow);
+</script>
+</body>
+</html>
