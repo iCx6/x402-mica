@@ -2,7 +2,7 @@ import { createPaymentWrapper, x402ResourceServer } from "@x402/mcp";
 import type { MCPToolCallback, PaymentWrappedHandler } from "@x402/mcp";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { makeFacilitatorClient } from "./facilitator.js";
-import { openDb, logTransaction } from "./db.js";
+import { openDb, tryLogTransaction } from "./db.js";
 import { buildAuditRow } from "./audit.js";
 import { resolvePrice, eip712Extra } from "./assets.js";
 
@@ -49,9 +49,9 @@ export function withPayment<A extends Record<string, unknown>>(
       resource: { description: options.description },
       hooks: {
         // Fires after a successful settlement — log the compliance audit row.
+        // tryLogTransaction never throws: the payment is already settled here.
         onAfterSettlement: ({ settlement }) => {
-          const row = buildAuditRow(settlement, { asset, amount: options.price });
-          if (row) logTransaction(db, row);
+          tryLogTransaction(db, buildAuditRow(settlement, { asset, amount: options.price }));
         },
       },
     })(handler);

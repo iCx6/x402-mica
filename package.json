@@ -49,7 +49,7 @@
     "mcp-company-client": "tsx src/mcp-company-client.ts",
     "mcp-http": "tsx src/mcp-http-example.ts",
     "mcp-http-client": "tsx src/mcp-http-client.ts",
-    "test": "tsx src/audit.test.ts && tsx src/dashboard.test.ts && tsx src/assets.test.ts && tsx src/company-lookup.test.ts",
+    "test": "tsx src/audit.test.ts && tsx src/db.test.ts && tsx src/dashboard.test.ts && tsx src/assets.test.ts && tsx src/company-lookup.test.ts",
     "prepack": "npm run build && npm test"
   },
   "dependencies": {

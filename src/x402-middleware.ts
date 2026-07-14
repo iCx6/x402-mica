@@ -3,7 +3,7 @@ import { paymentMiddleware, x402ResourceServer } from "@x402/express";
 import { ExactEvmScheme } from "@x402/evm/exact/server";
 import { HTTPFacilitatorClient } from "@x402/core/server";
 import { makeFacilitatorClient } from "./facilitator.js";
-import { openDb, logTransaction } from "./db.js";
+import { openDb, tryLogTransaction } from "./db.js";
 import { parseSettlement } from "./audit.js";
 import { resolvePrice } from "./assets.js";
 
@@ -53,17 +53,23 @@ export function x402Middleware(options: X402Options): RequestHandler {
     // attached only to paid requests.
     pay(req, res, () => {
       res.on("finish", () => {
-        // Server writes settlement to "PAYMENT-RESPONSE"; "X-PAYMENT-RESPONSE" is the v1 alias.
-        const settleHeader = res.getHeader("PAYMENT-RESPONSE") ?? res.getHeader("X-PAYMENT-RESPONSE");
-        if (typeof settleHeader !== "string") return;
-        const row = parseSettlement({
-          paymentResponseHeader: settleHeader,
-          // v2 sends PAYMENT-SIGNATURE; X-PAYMENT is the v1 alias. Payer fallback only.
-          paymentHeader: req.header("PAYMENT-SIGNATURE") ?? req.header("X-PAYMENT") ?? undefined,
-          asset,
-          amount: options.price,
-        });
-        if (row) logTransaction(db, row);
+        // A throw in a "finish" listener is an uncaught exception that kills the
+        // process — and the payment has already settled by now, so never let
+        // audit logging take the server down.
+        try {
+          // Server writes settlement to "PAYMENT-RESPONSE"; "X-PAYMENT-RESPONSE" is the v1 alias.
+          const settleHeader = res.getHeader("PAYMENT-RESPONSE") ?? res.getHeader("X-PAYMENT-RESPONSE");
+          if (typeof settleHeader !== "string") return;
+          tryLogTransaction(db, parseSettlement({
+            paymentResponseHeader: settleHeader,
+            // v2 sends PAYMENT-SIGNATURE; X-PAYMENT is the v1 alias. Payer fallback only.
+            paymentHeader: req.header("PAYMENT-SIGNATURE") ?? req.header("X-PAYMENT") ?? undefined,
+            asset,
+            amount: options.price,
+          }));
+        } catch (err) {
+          console.error("x402-mica: settlement audit failed (payment already settled):", err);
+        }
       });
       next();
     });

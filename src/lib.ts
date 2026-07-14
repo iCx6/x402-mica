@@ -12,5 +12,5 @@ export {
   type AuditRow,
   type Settlement,
 } from "./audit.js";
-export { openDb, logTransaction } from "./db.js";
+export { openDb, logTransaction, tryLogTransaction } from "./db.js";
 export { makeFacilitatorClient } from "./facilitator.js";

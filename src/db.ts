@@ -4,6 +4,10 @@ import type { AuditRow } from "./audit.js";
 export function openDb(path: string): DatabaseSync {
   const db = new DatabaseSync(path);
   db.exec("PRAGMA journal_mode = WAL");
+  // Same-process writers can't contend (synchronous autocommit statements only),
+  // but a cross-process lock (e.g. a debug sqlite3 CLI on the deploy volume) would
+  // otherwise throw SQLITE_BUSY immediately instead of waiting.
+  db.exec("PRAGMA busy_timeout = 5000");
   db.exec(`CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT NOT NULL,
@@ -30,4 +34,18 @@ export function logTransaction(db: DatabaseSync, row: AuditRow): void {
     txRef: row.txRef,
     mica: row.micaCompliant ? 1 : 0,
   });
+}
+
+/**
+ * `logTransaction` that never throws (logs the error instead). The middleware/MCP
+ * audit hooks run after the payment has settled — a failing audit write (full disk,
+ * locked db) must not crash a server that has already taken the payer's money.
+ */
+export function tryLogTransaction(db: DatabaseSync, row: AuditRow | null): void {
+  if (!row) return;
+  try {
+    logTransaction(db, row);
+  } catch (err) {
+    console.error("x402-mica: audit log write failed (payment already settled):", err);
+  }
 }
