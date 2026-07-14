@@ -10,8 +10,18 @@ generation. **The product is the software layer** — payment-gating + complianc
 metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
 itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-## Status (2026-07-10) — v0.2.2 on npm, landing page live, repo public
+## Status (2026-07-14) — v0.2.3 on npm, landing page live, repo public
 
+- 0.2.3 (published 2026-07-14): `classifyAsset()` + `AssetClassification` — issuer-
+  authorization status behind `mica_compliant` (emt_authorized USDC/EURC,
+  emt_unauthorized USDT, unregulated, unknown; asset-level, and explicitly NOT a
+  claim about payment legality — MiCA Art. 88 binds CASPs, not wallet-to-wallet).
+  Deliberately no db column/migration until non-uniform data exists. Plus:
+  `tryLogTransaction` guard — a post-settlement audit-write failure can no longer
+  crash the server (greppable `AUDIT_WRITE_FAILED` line carries the full row for
+  manual reconstruction), and `PRAGMA busy_timeout = 5000` in `openDb`.
+- Landing page fixes (2026-07-14): 402 star-ring centering (CSS specificity),
+  demo section corrected Sepolia→mainnet wording, Node ≥ 22.13.
 - 0.2.1: `auditDashboard` opens its db lazily (eager open crashed fresh deploys).
 - 0.2.2: mainnet USDC EIP-712 domain fix on the MCP path (`"USD Coin"`, not `"USDC"`).
   Both found by dogfooding the eu-tools-mcp deployment; both live-verified on Fly.
@@ -39,10 +49,19 @@ itself is solved by x402; the `mica_compliant` flag and audit trail are the diff
 
 ## TODO
 
-1. **Launch post (NEXT)** — Reddit first (r/mcp + r/SideProject), user posts manually;
+1. **x402-trust submission — BLOCKED on an eu-tools-mcp ECB parser fix.**
+   `GET /eur-fx` paid HTTP route is deployed (Phase 3 verified on mainnet: bare GET
+   → correct 402 challenge incl. "USD Coin" domain; all pre-paywall 400s work), but
+   the paid loop 502s on dated queries: `parseEcbXml` accepts only single-quoted XML
+   attributes — ECB's daily file is single-quoted, the hist-90d file is DOUBLE-quoted,
+   and the dated path had never run in production. No money was lost (settlement
+   skipped on non-2xx; verified on-chain). Fix awaiting user go-ahead: accept both
+   quote styles + a double-quoted fixture test, re-run Phase 3 from step 3, then
+   submit `https://eu-tools-mcp.fly.dev/eur-fx` to https://x402.fuchss.app/submit.
+2. **Launch post** — Reddit first (r/mcp + r/SideProject), user posts manually;
    drafts in `docs/launch-post-drafts.md` (still uncommitted). Landing + README + live
    demo are all in place to link.
-2. **Validation before more code** — first outside users. New features are guesses
+3. **Validation before more code** — first outside users. New features are guesses
    until someone external uses the package.
 
 ## Future roadmap (unordered ideas — build only on demand)
