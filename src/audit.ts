@@ -11,15 +11,34 @@ export interface AuditRow {
   micaCompliant: boolean;
 }
 
-// MiCA rule: a payment is MiCA-compliant iff it settled in USDC or EURC on a
-// Base network. Both are MiCA-authorized via Circle's France EMI license; other
-// assets (e.g. USDT) are not. Computed, not hard-coded, so a future non-compliant
+/** Issuer's authorization status under MiCA's e-money-token regime. Asset-level,
+ * not network-level: MiCA authorization is issuer/token-scoped, not chain-scoped.
+ * Describes the issuer's status only — NOT the legality of a given payment
+ * (Art. 88 binds CASPs offering to the public, not wallet-to-wallet transfers). */
+export type AssetClassification =
+  | "emt_authorized"    // EMT from a MiCA-authorized issuer (USDC, EURC — Circle EMI license)
+  | "emt_unauthorized"  // fiat-pegged (EMT by economic structure), issuer holds no MiCA authorization
+  | "unregulated"       // not a fiat-pegged EMT; outside the MiCA EMT regime
+  | "unknown";          // asset we hold no classification for
+
+// Only what we can defend; anything unlisted classifies as "unknown", never guessed.
+const CLASSIFICATIONS: Record<string, AssetClassification> = {
+  USDC: "emt_authorized",   // Circle France EMI license
+  EURC: "emt_authorized",   // Circle France EMI license
+  USDT: "emt_unauthorized", // EMT by structure; issuer never obtained MiCA authorization
+};
+
+export function classifyAsset(asset: string): AssetClassification {
+  return CLASSIFICATIONS[asset.toUpperCase()] ?? "unknown";
+}
+
+// MiCA rule: a payment is MiCA-compliant iff it settled in an issuer-authorized
+// EMT on a Base network. Computed, not hard-coded, so a future non-compliant
 // asset/network logs `false` instead of silently claiming compliance.
 const BASE_NETWORKS = new Set(["eip155:8453", "eip155:84532"]); // mainnet, sepolia
-const MICA_ASSETS = new Set(["USDC", "EURC"]);
 
 export function isMicaCompliant(network: string, asset: string): boolean {
-  return BASE_NETWORKS.has(network) && MICA_ASSETS.has(asset.toUpperCase());
+  return BASE_NETWORKS.has(network) && classifyAsset(asset) === "emt_authorized";
 }
 
 function decodeB64Json(header: string): any {

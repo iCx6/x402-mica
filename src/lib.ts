@@ -7,6 +7,8 @@ export {
   buildAuditRow,
   parseSettlement,
   isMicaCompliant,
+  classifyAsset,
+  type AssetClassification,
   type AuditRow,
   type Settlement,
 } from "./audit.js";

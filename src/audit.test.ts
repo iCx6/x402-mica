@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { parseSettlement, isMicaCompliant, buildAuditRow } from "./audit.js";
+import { parseSettlement, isMicaCompliant, buildAuditRow, classifyAsset } from "./audit.js";
 
 const b64 = (obj: unknown): string => Buffer.from(JSON.stringify(obj)).toString("base64");
 
@@ -77,5 +77,33 @@ assert.equal(
 assert.equal(isMicaCompliant("eip155:8453", "EURC"), true);
 assert.equal(isMicaCompliant("eip155:84532", "eurc"), true);
 assert.equal(isMicaCompliant("eip155:1", "EURC"), false);
+
+// classifyAsset: issuer-authorization status, asset-level (chain-agnostic)
+assert.equal(classifyAsset("USDC"), "emt_authorized");
+assert.equal(classifyAsset("EURC"), "emt_authorized");
+assert.equal(classifyAsset("USDT"), "emt_unauthorized");
+assert.equal(classifyAsset("usdc"), "emt_authorized"); // case-insensitive
+assert.equal(classifyAsset("usdt"), "emt_unauthorized");
+assert.equal(classifyAsset("DOGE"), "unknown"); // unlisted asset
+assert.equal(classifyAsset(""), "unknown");
+// "unregulated" has no seeded members by design — the map only holds what we can
+// defend (see audit.ts); the arm exists for consumers/overrides, not for guessing.
+
+// isMicaCompliant must stay behaviourally identical to the pre-classifier
+// implementation (BASE_NETWORKS.has(network) && asset in {USDC, EURC}) — this is
+// the backwards-compatibility guarantee for the stored mica_compliant column.
+{
+  const BASE_NETWORKS = new Set(["eip155:8453", "eip155:84532"]);
+  const MICA_ASSETS = new Set(["USDC", "EURC"]);
+  const legacy = (network: string, asset: string) =>
+    BASE_NETWORKS.has(network) && MICA_ASSETS.has(asset.toUpperCase());
+  const networks = ["eip155:8453", "eip155:84532", "eip155:1", "solana:mainnet", ""];
+  const assets = ["USDC", "usdc", "EURC", "eurc", "USDT", "DOGE", ""];
+  for (const n of networks) {
+    for (const a of assets) {
+      assert.equal(isMicaCompliant(n, a), legacy(n, a), `equivalence broke for (${n}, ${a})`);
+    }
+  }
+}
 
 console.log("audit.test.ts: all assertions passed");

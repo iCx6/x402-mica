@@ -107,6 +107,23 @@ curl -H "x-api-key: $AUDIT_API_KEY" -OJ \
   "http://localhost:3000/audit?format=csv&from=2026-04-01&to=2026-06-30"
 ```
 
+## Asset classification
+
+`classifyAsset(asset)` returns the machine-readable classification behind the
+`mica_compliant` flag (which is `true` iff the asset is `emt_authorized` *and*
+settlement is on a Base network):
+
+| Classification | Meaning | Assets |
+|---|---|---|
+| `emt_authorized` | e-money token from a MiCA-authorized issuer | USDC, EURC (Circle EMI license) |
+| `emt_unauthorized` | fiat-pegged (EMT by economic structure), issuer holds no MiCA authorization | USDT |
+| `unregulated` | not a fiat-pegged EMT; outside the MiCA EMT regime | — |
+| `unknown` | asset this library holds no classification for | anything unlisted |
+
+The classification describes the **issuer's MiCA authorization status**, not the
+legality of a given payment — accepting an unauthorized EMT wallet-to-wallet is not
+itself a MiCA violation for a non-CASP seller.
+
 ## Networks & facilitators
 
 | Network | Facilitator | Keys needed |
