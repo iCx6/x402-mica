@@ -65,7 +65,7 @@
   .star-ring{position:relative;width:150px;height:150px;margin:0 auto 8px}
   .star-ring>span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) rotate(var(--r)) translateY(-58px);color:var(--gold-bright);font-size:14px}
   .star-ring>span>i{display:inline-block;font-style:normal;transform:rotate(calc(var(--r) * -1))}
-  .ring-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--hero-dim)}
+  .star-ring>.ring-center{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:var(--hero-dim)}
   .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-bright);margin-bottom:14px}
   h1{font-family:var(--serif);font-weight:600;font-size:clamp(2.3rem,4.6vw,3.375rem);line-height:1.1;letter-spacing:-.01em;max-width:850px;margin:0 auto 16px;color:#F5F1E4}
   h1 em{font-style:italic;color:var(--gold-bright)}
@@ -208,7 +208,7 @@
         <button type="button" onclick="copyInstall(this)">Copy</button>
       </div>
     </div>
-    <p class="hero-meta">Non-custodial · MIT · Node ≥ 22 · USDC default, EURC opt-in</p>
+    <p class="hero-meta">Non-custodial · MIT · Node ≥ 22.13 · USDC default, EURC opt-in</p>
 
     <!-- signature: audit receipt -->
     <div class="receipt" id="receipt" aria-label="Example x402 payment exchange and audit record">
@@ -334,9 +334,8 @@ app.<span class="c-fn">get</span>(<span class="c-str">"/audit"</span>, <span cla
         <div>
           <p class="notice-label">Notice — live demo</p>
           <h2>Try it against a live server</h2>
-          <p>eu-tools-mcp is a running demo network built on x402-mica: EU-focused MCP tools behind real x402 paywalls on Base Sepolia. No account, no API key — testnet USDC is free from the faucet.</p>
+          <p>eu-tools-mcp is a running demo built on x402-mica: EU-focused MCP tools behind real x402 paywalls on Base mainnet. Real USDC at sub-cent prices — and every settled call is on-chain in its <a href="https://eu-tools-mcp.fly.dev/audit?key=demo-c43d89b159ec2227">public audit dashboard</a>.</p>
         </div>
-        <!-- TODO: verify demo URL before publishing -->
         <a class="btn" href="https://eu-tools-mcp.fly.dev">Open the demo →</a>
       </div>
     </div>
