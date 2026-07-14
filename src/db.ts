@@ -46,6 +46,11 @@ export function tryLogTransaction(db: DatabaseSync, row: AuditRow | null): void 
   try {
     logTransaction(db, row);
   } catch (err) {
-    console.error("x402-mica: audit log write failed (payment already settled):", err);
+    // Greppable/alertable token + the full row: a lost audit row is a missing
+    // regulatory record, so the log line must carry enough to reconstruct it.
+    console.error(
+      `x402-mica AUDIT_WRITE_FAILED (payment already settled) row=${JSON.stringify(row)}`,
+      err,
+    );
   }
 }
