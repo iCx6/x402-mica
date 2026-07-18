@@ -10,8 +10,19 @@ generation. **The product is the software layer** — payment-gating + complianc
 metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
 itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-## Status (2026-07-17) — v0.2.4 on npm, landing page live, repo public
+## Status (2026-07-18) — v0.2.4 on npm (0.2.5 committed, publish pending), landing live, repo public
 
+- 0.2.5 (committed 2026-07-18, NOT yet published): audit-loss fix pair from the
+  payment-flow audit. (1) The HTTP audit hook listens on res `"close"` as well as
+  `"finish"` (once-flag) — a client abort after settlement used to lose the audit
+  row silently: settle happens BEFORE the buffered response flushes, and `"finish"`
+  never fires on abort (verified in `@x402/express` dist). Residual gap: an abort
+  while the settle RPC is in flight is recoverable only from on-chain history.
+  (2) Partial unique index on `tx_ref` (`WHERE tx_ref != ''`) + `INSERT OR IGNORE`
+  — a duplicate settlement tx is "already audited", never a second row; a legacy
+  db with pre-existing dupes degrades to no-index (console.error) instead of
+  crashing `openDb` at startup. New `src/x402-middleware.test.ts` drives the real
+  middleware network-free (fake req/res on a non-gated path).
 - 0.2.4 (published 2026-07-17): HBAR → "unregulated" in the `classifyAsset()` map —
   first seeded member of the "unregulated" arm (native L1 coin, not a fiat-pegged
   EMT). Map-only change + case-insensitivity test; `isMicaCompliant()` untouched.

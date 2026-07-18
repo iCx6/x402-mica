@@ -52,14 +52,23 @@ export function x402Middleware(options: X402Options): RequestHandler {
     // request it writes the 402 itself and never calls back. So the audit hook is
     // attached only to paid requests.
     pay(req, res, () => {
-      res.on("finish", () => {
-        // A throw in a "finish" listener is an uncaught exception that kills the
+      // "finish" never fires when the client aborts mid-response ("close" always
+      // does) — and the payment settles BEFORE the buffered response is flushed,
+      // so an abort after settlement must still produce an audit row. Listen on
+      // both; `logged` + the tx_ref unique index guard against a double write.
+      // Residual gap: an abort while the settle RPC is still in flight fires
+      // "close" before the settlement header exists — that payment is only
+      // recoverable from the payTo wallet's on-chain history.
+      let logged = false;
+      const audit = () => {
+        // A throw in a res-event listener is an uncaught exception that kills the
         // process — and the payment has already settled by now, so never let
         // audit logging take the server down.
         try {
           // Server writes settlement to "PAYMENT-RESPONSE"; "X-PAYMENT-RESPONSE" is the v1 alias.
           const settleHeader = res.getHeader("PAYMENT-RESPONSE") ?? res.getHeader("X-PAYMENT-RESPONSE");
-          if (typeof settleHeader !== "string") return;
+          if (logged || typeof settleHeader !== "string") return;
+          logged = true;
           tryLogTransaction(db, parseSettlement({
             paymentResponseHeader: settleHeader,
             // v2 sends PAYMENT-SIGNATURE; X-PAYMENT is the v1 alias. Payer fallback only.
@@ -70,7 +79,9 @@ export function x402Middleware(options: X402Options): RequestHandler {
         } catch (err) {
           console.error("x402-mica: settlement audit failed (payment already settled):", err);
         }
-      });
+      };
+      res.on("finish", audit);
+      res.on("close", audit);
       next();
     });
   };
