@@ -1,6 +1,6 @@
 {
   "name": "x402-mica",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "EU-facing x402 payment middleware with MiCA-compliance audit logging — Express middleware, MCP tool decorator, and audit dashboard",
   "license": "MIT",
   "repository": {

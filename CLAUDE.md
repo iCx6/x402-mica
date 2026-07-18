@@ -10,8 +10,14 @@ generation. **The product is the software layer** — payment-gating + complianc
 metadata + audit log — sold to developers who monetize APIs/MCP tools. Payment-gating
 itself is solved by x402; the `mica_compliant` flag and audit trail are the differentiator.
 
-## Status (2026-07-14) — v0.2.3 on npm, landing page live, repo public
+## Status (2026-07-17) — v0.2.4 on npm, landing page live, repo public
 
+- 0.2.4 (published 2026-07-17): HBAR → "unregulated" in the `classifyAsset()` map —
+  first seeded member of the "unregulated" arm (native L1 coin, not a fiat-pegged
+  EMT). Map-only change + case-insensitivity test; `isMicaCompliant()` untouched.
+  Publish gotchas hit: package-lock.json version had drifted (stuck at 0.2.2, now
+  synced), and npm auth had expired — `npm publish` reports that as a misleading
+  E404 on PUT (`npm whoami` → 401 is the tell; re-login with bluenami866).
 - 0.2.3 (published 2026-07-14): `classifyAsset()` + `AssetClassification` — issuer-
   authorization status behind `mica_compliant` (emt_authorized USDC/EURC,
   emt_unauthorized USDT, unregulated, unknown; asset-level, and explicitly NOT a

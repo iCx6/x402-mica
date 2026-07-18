@@ -86,8 +86,10 @@ assert.equal(classifyAsset("usdc"), "emt_authorized"); // case-insensitive
 assert.equal(classifyAsset("usdt"), "emt_unauthorized");
 assert.equal(classifyAsset("DOGE"), "unknown"); // unlisted asset
 assert.equal(classifyAsset(""), "unknown");
-// "unregulated" has no seeded members by design — the map only holds what we can
-// defend (see audit.ts); the arm exists for consumers/overrides, not for guessing.
+assert.equal(classifyAsset("HBAR"), "unregulated"); // native L1 coin, not a fiat-pegged EMT
+assert.equal(classifyAsset("hbar"), "unregulated"); // case-insensitive
+// The map only holds what we can defend (see audit.ts); anything unlisted is
+// "unknown", never guessed.
 
 // isMicaCompliant must stay behaviourally identical to the pre-classifier
 // implementation (BASE_NETWORKS.has(network) && asset in {USDC, EURC}) — this is

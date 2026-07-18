@@ -26,6 +26,7 @@ const CLASSIFICATIONS: Record<string, AssetClassification> = {
   USDC: "emt_authorized",   // Circle France EMI license
   EURC: "emt_authorized",   // Circle France EMI license
   USDT: "emt_unauthorized", // EMT by structure; issuer never obtained MiCA authorization
+  HBAR: "unregulated",      // native L1 coin, not fiat-pegged; outside the EMT regime
 };
 
 export function classifyAsset(asset: string): AssetClassification {
