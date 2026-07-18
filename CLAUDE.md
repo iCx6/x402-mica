@@ -64,22 +64,36 @@ itself is solved by x402; the `mica_compliant` flag and audit trail are the diff
   `v0.2.0` tag pushed, post-publish smoke test passed (fresh registry install, all 9
   exports load without `PAY_TO`).
 
-## TODO
+## TODO — resume sequence (state as of 2026-07-18)
 
-1. **x402-trust submission — BLOCKED on an eu-tools-mcp ECB parser fix.**
-   `GET /eur-fx` paid HTTP route is deployed (Phase 3 verified on mainnet: bare GET
-   → correct 402 challenge incl. "USD Coin" domain; all pre-paywall 400s work), but
-   the paid loop 502s on dated queries: `parseEcbXml` accepts only single-quoted XML
-   attributes — ECB's daily file is single-quoted, the hist-90d file is DOUBLE-quoted,
-   and the dated path had never run in production. No money was lost (settlement
-   skipped on non-2xx; verified on-chain). Fix awaiting user go-ahead: accept both
-   quote styles + a double-quoted fixture test, re-run Phase 3 from step 3, then
-   submit `https://eu-tools-mcp.fly.dev/eur-fx` to https://x402.fuchss.app/submit.
-2. **Launch post** — Reddit first (r/mcp + r/SideProject), user posts manually;
-   drafts in `docs/launch-post-drafts.md` (still uncommitted). Landing + README + live
-   demo are all in place to link.
-3. **Validation before more code** — first outside users. New features are guesses
-   until someone external uses the package.
+All code work for the current round is COMMITTED and PUSHED in both repos
+(x402-mica `dfaf85d`, eu-tools-mcp `efacc2f`); what remains is release/deploy
+choreography, in this exact order:
+
+1. **USER: `npm publish` in this repo** → releases 0.2.5 (audit-loss fix pair:
+   res "close" listener + tx_ref unique index; see Status). Working tree is clean,
+   `prepack` runs build+tests. Auth gotcha: publish must run in the user's own
+   terminal (browser 2FA); a misleading `E404 on PUT` means expired auth —
+   diagnose `npm whoami`, fix `npm login` (account bluenami866).
+2. **Claude: bump eu-tools-mcp** — `x402-mica` dependency + lockfile to 0.2.5,
+   commit, push. (Blocked until step 1: can't install an unpublished version.)
+   The ECB quote-style parser fix (dated /eur-fx queries 502'd; hist-90d file is
+   double-quoted) is already committed there (`43599a3`) — no further code needed.
+3. **USER: `fly deploy` in eu-tools-mcp** (Fly account attilapalpal@gmail.com).
+4. **Claude: re-run Phase 3 verification from step 3** — pay a dated/weekend
+   `GET /eur-fx` query on mainnet (weekend date → carry-forward rate_date),
+   verify: 200 + correct rates, audit row written, process alive, no
+   AUDIT_WRITE_FAILED in logs, MCP eur_fx parity.
+5. **Submit** `https://eu-tools-mcp.fly.dev/eur-fx` to https://x402.fuchss.app/submit.
+6. **Launch post** — Reddit first (r/mcp + r/SideProject), user posts manually;
+   drafts in `docs/launch-post-drafts.md` (uncommitted ON PURPOSE — public repo,
+   don't commit marketing drafts pre-launch). Landing + README + live demo + the
+   x402-trust listing (after step 5) are the linkable proof points.
+7. **Validation before more code** — first outside users. New features are guesses
+   until someone external uses the package. Deferred by design from the 2026-07-18
+   payment-flow audit: settlement-derived amount/asset in the audit row (they are
+   config-sourced today) and a chain-vs-db reconcile tool — separate rounds, only
+   if validated need appears.
 
 ## Future roadmap (unordered ideas — build only on demand)
 
